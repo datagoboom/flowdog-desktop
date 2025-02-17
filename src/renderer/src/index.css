@@ -1,0 +1,471 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  html {
+    @apply bg-light-background text-light-foreground;
+  }
+
+  html.dark {
+    @apply bg-dark-background text-dark-foreground;
+  }
+
+  body {
+    @apply min-h-screen antialiased pt-10;
+  }
+}
+
+@layer components {
+  .glass-light {
+    @apply bg-light-paper backdrop-blur-lg border border-light-foreground;
+    background-opacity: 0.7;
+    border-opacity: 0.1;
+  }
+
+  .glass-dark {
+    @apply bg-dark-paper backdrop-blur-lg border border-dark-foreground;
+    background-opacity: 0.7;
+    border-opacity: 0.1;
+  }
+}
+
+.handle-input-dark {
+  @apply bg-white;
+  @apply w-3 h-3;
+  border-width: 0;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 4px 2px rgba(255, 255, 255, 0.25);
+  animation: light-pulse 3s linear infinite;
+}
+
+.handle-output-dark {
+  @apply bg-white;
+  @apply w-3 h-3;
+  border-width: 0;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 4px 2px rgba(255, 255, 255, 0.25);
+}
+
+.handle-input-light {
+  @apply bg-slate-400;
+  @apply w-3 h-3;
+  border-width: 0;
+  border-radius: 0.5rem;
+}
+
+.handle-output-light {
+  @apply bg-slate-400;
+  @apply w-3 h-3;
+  border-width: 0;
+}
+
+.handle-red-dark{
+  @apply bg-red-400;
+  @apply shadow-sm shadow-red-400;
+}
+
+.handle-red-light{
+  @apply bg-red-500
+}
+
+.handle-left{
+  @apply -left-1.5;
+}
+
+.handle-right{
+  @apply -right-1.5;
+}
+
+.handle-top{
+  @apply top-0.5;
+}
+
+.handle-bottom{
+  @apply -bottom-1.5;
+}
+
+@keyframes dash {
+  to {
+    strokeDashoffset: -12;
+  }
+}
+
+@keyframes dashdraw {
+  from {
+    strokeDashoffset: 10;
+  }
+}
+
+@keyframes flow {
+  0% {
+    strokeDashoffset: 15;
+  }
+  100% {
+    strokeDashoffset: 0;
+  }
+}
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+@keyframes fade-in-out {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(-15deg);
+  }
+  100% {
+    transform: rotate(15deg);
+  }
+}
+
+@keyframes light-pulse{
+  0%{
+    box-shadow: 0 0 4px 2px rgba(255, 255, 255, 0.25);
+  }
+  50%{
+    box-shadow: 0 0 4px 2px rgba(255, 255, 255, 0.5);
+  }
+  100%{
+    box-shadow: 0 0 4px 2px rgba(255, 255, 255, 0.25);
+  }
+}
+
+.animate-dash {
+  animation: dash 1s linear infinite;
+}
+
+.animate-flow {
+  animation: flow 1s linear infinite;
+}
+
+.animate-light-pulse{
+  animation: fade-in-out 1s linear infinite;
+}
+.animate-spin-ease-in-out {
+  animation: spin 1s cubic-bezier(0.645, 0.045, 0.355, 1) infinite alternate;
+}
+
+.logo-fade-in-out {
+  animation: fade-in-out 0.3s ease-in-out;
+}
+
+:root {
+  /* Light theme semantic colors with multiple weights */
+  --color-red-50: theme('colors.red.50');
+  --color-red-100: theme('colors.red.100');
+  --color-red-200: theme('colors.red.200');
+  --color-red-300: theme('colors.red.300');
+  --color-red-400: theme('colors.red.400');
+  --color-red-500: theme('colors.red.500');
+  --color-red-600: theme('colors.red.600');
+  --color-red-700: theme('colors.red.700');
+  --color-red-800: theme('colors.red.800');
+  --color-red-900: theme('colors.red.900');
+  
+  --color-orange-50: theme('colors.orange.50');
+  --color-orange-100: theme('colors.orange.100');
+  --color-orange-200: theme('colors.orange.200');
+  --color-orange-300: theme('colors.orange.300');
+  --color-orange-400: theme('colors.orange.400');
+  --color-orange-500: theme('colors.orange.500');
+  --color-orange-600: theme('colors.orange.600');
+  --color-orange-700: theme('colors.orange.700');
+  --color-orange-800: theme('colors.orange.800');
+  --color-orange-900: theme('colors.orange.900');
+  
+  --color-yellow-50: theme('colors.yellow.50');
+  --color-yellow-100: theme('colors.yellow.100');
+  --color-yellow-200: theme('colors.yellow.200');
+  --color-yellow-300: theme('colors.yellow.300');
+  --color-yellow-400: theme('colors.yellow.400');
+  --color-yellow-500: theme('colors.yellow.500');
+  --color-yellow-600: theme('colors.yellow.600');
+  --color-yellow-700: theme('colors.yellow.700');
+  --color-yellow-800: theme('colors.yellow.800');
+  --color-yellow-900: theme('colors.yellow.900');
+  
+  --color-green-50: theme('colors.green.50');
+  --color-green-100: theme('colors.green.100');
+  --color-green-200: theme('colors.green.200');
+  --color-green-300: theme('colors.green.300');
+  --color-green-400: theme('colors.green.400');
+  --color-green-500: theme('colors.green.500');
+  --color-green-600: theme('colors.green.600');
+  --color-green-700: theme('colors.green.700');
+  --color-green-800: theme('colors.green.800');
+  --color-green-900: theme('colors.green.900');
+  
+  --color-aqua-50: theme('colors.aqua.50');
+  --color-aqua-100: theme('colors.aqua.100');
+  --color-aqua-200: theme('colors.aqua.200');
+  --color-aqua-300: theme('colors.aqua.300');
+  --color-aqua-400: theme('colors.aqua.400');
+  --color-aqua-500: theme('colors.aqua.500');
+  --color-aqua-600: theme('colors.aqua.600');
+  --color-aqua-700: theme('colors.aqua.700');
+  --color-aqua-800: theme('colors.aqua.800');
+  --color-aqua-900: theme('colors.aqua.900');
+  
+  --color-blue-50: theme('colors.blue.50');
+  --color-blue-100: theme('colors.blue.100');
+  --color-blue-200: theme('colors.blue.200');
+  --color-blue-300: theme('colors.blue.300');
+  --color-blue-400: theme('colors.blue.400');
+  --color-blue-500: theme('colors.blue.500');
+  --color-blue-600: theme('colors.blue.600');
+  --color-blue-700: theme('colors.blue.700');
+  --color-blue-800: theme('colors.blue.800');
+  --color-blue-900: theme('colors.blue.900');
+  
+  --color-purple-50: theme('colors.purple.50');
+  --color-purple-100: theme('colors.purple.100');
+  --color-purple-200: theme('colors.purple.200');
+  --color-purple-300: theme('colors.purple.300');
+  --color-purple-400: theme('colors.purple.400');
+  --color-purple-500: theme('colors.purple.500');
+  --color-purple-600: theme('colors.purple.600');
+  --color-purple-700: theme('colors.purple.700');
+  --color-purple-800: theme('colors.purple.800');
+  --color-purple-900: theme('colors.purple.900');
+  
+  --color-cyan-50: theme('colors.cyan.50');
+  --color-cyan-100: theme('colors.cyan.100');
+  --color-cyan-200: theme('colors.cyan.200');
+  --color-cyan-300: theme('colors.cyan.300');
+  --color-cyan-400: theme('colors.cyan.400');
+  --color-cyan-500: theme('colors.cyan.500');
+  --color-cyan-600: theme('colors.cyan.600');
+  --color-cyan-700: theme('colors.cyan.700');
+  --color-cyan-800: theme('colors.cyan.800');
+  --color-cyan-900: theme('colors.cyan.900');
+
+  /* Legacy variables for backward compatibility */
+  --color-red: var(--color-red-500);
+  --color-orange: var(--color-orange-500);
+  --color-yellow: var(--color-yellow-500);
+  --color-green: var(--color-green-500);
+  --color-aqua: var(--color-aqua-500);
+  --color-blue: var(--color-blue-500);
+  --color-purple: var(--color-purple-500);
+  --color-cyan: var(--color-cyan-500);
+}
+
+.dark {
+  /* Dark theme semantic colors with multiple weights */
+  --color-red-50: theme('colors.red.50');
+  --color-red-100: theme('colors.red.100');
+  --color-red-200: theme('colors.red.200');
+  --color-red-300: theme('colors.red.300');
+  --color-red-400: theme('colors.red.400');
+  --color-red-500: theme('colors.red.500');
+  --color-red-600: theme('colors.red.600');
+  --color-red-700: theme('colors.red.700');
+  --color-red-800: theme('colors.red.800');
+  --color-red-900: theme('colors.red.900');
+  
+  --color-orange-50: theme('colors.orange.50');
+  --color-orange-100: theme('colors.orange.100');
+  --color-orange-200: theme('colors.orange.200');
+  --color-orange-300: theme('colors.orange.300');
+  --color-orange-400: theme('colors.orange.400');
+  --color-orange-500: theme('colors.orange.500');
+  --color-orange-600: theme('colors.orange.600');
+  --color-orange-700: theme('colors.orange.700');
+  --color-orange-800: theme('colors.orange.800');
+  --color-orange-900: theme('colors.orange.900');
+  
+  --color-yellow-50: theme('colors.yellow.50');
+  --color-yellow-100: theme('colors.yellow.100');
+  --color-yellow-200: theme('colors.yellow.200');
+  --color-yellow-300: theme('colors.yellow.300');
+  --color-yellow-400: theme('colors.yellow.400');
+  --color-yellow-500: theme('colors.yellow.500');
+  --color-yellow-600: theme('colors.yellow.600');
+  --color-yellow-700: theme('colors.yellow.700');
+  --color-yellow-800: theme('colors.yellow.800');
+  --color-yellow-900: theme('colors.yellow.900');
+  
+  --color-green-50: theme('colors.green.50');
+  --color-green-100: theme('colors.green.100');
+  --color-green-200: theme('colors.green.200');
+  --color-green-300: theme('colors.green.300');
+  --color-green-400: theme('colors.green.400');
+  --color-green-500: theme('colors.green.500');
+  --color-green-600: theme('colors.green.600');
+  --color-green-700: theme('colors.green.700');
+  --color-green-800: theme('colors.green.800');
+  --color-green-900: theme('colors.green.900');
+  
+  --color-aqua-50: theme('colors.aqua.50');
+  --color-aqua-100: theme('colors.aqua.100');
+  --color-aqua-200: theme('colors.aqua.200');
+  --color-aqua-300: theme('colors.aqua.300');
+  --color-aqua-400: theme('colors.aqua.400');
+  --color-aqua-500: theme('colors.aqua.500');
+  --color-aqua-600: theme('colors.aqua.600');
+  --color-aqua-700: theme('colors.aqua.700');
+  --color-aqua-800: theme('colors.aqua.800');
+  --color-aqua-900: theme('colors.aqua.900');
+  
+  --color-blue-50: theme('colors.blue.50');
+  --color-blue-100: theme('colors.blue.100');
+  --color-blue-200: theme('colors.blue.200');
+  --color-blue-300: theme('colors.blue.300');
+  --color-blue-400: theme('colors.blue.400');
+  --color-blue-500: theme('colors.blue.500');
+  --color-blue-600: theme('colors.blue.600');
+  --color-blue-700: theme('colors.blue.700');
+  --color-blue-800: theme('colors.blue.800');
+  --color-blue-900: theme('colors.blue.900');
+  
+  --color-purple-50: theme('colors.purple.50');
+  --color-purple-100: theme('colors.purple.100');
+  --color-purple-200: theme('colors.purple.200');
+  --color-purple-300: theme('colors.purple.300');
+  --color-purple-400: theme('colors.purple.400');
+  --color-purple-500: theme('colors.purple.500');
+  --color-purple-600: theme('colors.purple.600');
+  --color-purple-700: theme('colors.purple.700');
+  --color-purple-800: theme('colors.purple.800');
+  --color-purple-900: theme('colors.purple.900');
+  
+  --color-cyan-50: theme('colors.cyan.50');
+  --color-cyan-100: theme('colors.cyan.100');
+  --color-cyan-200: theme('colors.cyan.200');
+  --color-cyan-300: theme('colors.cyan.300');
+  --color-cyan-400: theme('colors.cyan.400');
+  --color-cyan-500: theme('colors.cyan.500');
+  --color-cyan-600: theme('colors.cyan.600');
+  --color-cyan-700: theme('colors.cyan.700');
+  --color-cyan-800: theme('colors.cyan.800');
+  --color-cyan-900: theme('colors.cyan.900');
+
+  /* Legacy variables for backward compatibility using 400 weight */
+  --color-red: var(--color-red-400);
+  --color-orange: var(--color-orange-400);
+  --color-yellow: var(--color-yellow-400);
+  --color-green: var(--color-green-400);
+  --color-aqua: var(--color-aqua-400);
+  --color-blue: var(--color-blue-400);
+  --color-purple: var(--color-purple-400);
+  --color-cyan: var(--color-cyan-400);
+}
+
+.positionHandlerContainer {
+  position: absolute;
+  pointer-events: all;
+}
+
+.positionHandlerEventContainer {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.positionHandlerEventContainer.active {
+  transform: scale(1.1);
+}
+
+.positionHandler {
+  width: 10px;
+  height: 10px;
+  background: #fff319;
+  border: 1px solid #ddd41d;
+  cursor: pointer;
+  border-radius: 50%;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+}
+
+.positionHandler:hover {
+  box-shadow: 0 0 6px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* Overrides */
+.react-flow__controls {
+  background-color: transparent;
+  border: none;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  position: inherit!important;
+  left: 0!important;
+}
+.react-flow_panel{
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  width: 100%!important;
+  margin: 0!important;
+  padding: 0!important;
+  position: inherit!important;
+  left: 0!important;
+  bottom: 0!important;
+  transform: none!important;
+  background-color: transparent!important;
+  
+}
+.react-flow__controls-button {
+  background-color: transparent;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+}
+
+.hljs {
+  background: transparent!important;
+}
+
+/* Custom titlebar styles */
+.titlebar {
+  @apply h-10 bg-slate-900 flex items-center justify-between px-4 select-none fixed top-0 left-0 right-0 border-b border-slate-700 shadow-lg dark:bg-slate-700;
+  -webkit-app-region: drag; /* Makes the titlebar draggable */
+}
+
+.titlebar-left {
+  @apply flex items-center gap-2;
+}
+
+.titlebar-logo {
+  @apply h-6 w-6;
+}
+
+.titlebar-text {
+  @apply text-white font-semibold text-sm;
+}
+
+.window-controls {
+  @apply flex items-center gap-2;
+  -webkit-app-region: no-drag; /* Makes buttons clickable */
+}
+
+.window-control-btn {
+  @apply p-2 text-white hover:bg-slate-700 rounded-md transition-colors;
+  -webkit-app-region: no-drag;
+}
