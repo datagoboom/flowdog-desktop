@@ -9,12 +9,16 @@ import { storageHandlers } from './handlers/storageHandlers'
 import { databaseHandlers } from './handlers/databaseHandlers'
 import database from './services/database'
 import { dialogHandlers } from './handlers/dialogHandlers'
+import { createTray, updateTrayMenu } from './tray'
 
 const execAsync = promisify(exec)
 
+let mainWindow = null
+let tray = null
+
 function createWindow() {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     show: true,
@@ -45,22 +49,25 @@ function createWindow() {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  // Handle window close to minimize to tray instead
+  mainWindow.on('close', (event) => {
+    if (!app.isQuitting) {
+      event.preventDefault()
+      mainWindow.hide()
+    }
+    return false
+  })
+
+  // Create tray icon
+  tray = createTray(mainWindow)
 }
 
-function registerHandlers(ipcMain) {
-  // Register handlers in specific order to ensure proper overrides
-  const handlers = {
-    ...nodeHandlers,
-    ...storageHandlers,
-    ...dialogHandlers,
-    ...databaseHandlers
-  }
-
-  Object.entries(handlers).forEach(([channel, handler]) => {
-    console.log(`Registering handler for channel: ${channel}`);
-    // Modify handler registration to properly handle IPC arguments
-    ipcMain.handle(channel, (event, ...args) => handler(...args));
-  });
+function registerHandlers() {
+  // Register each storage handler
+  Object.entries(storageHandlers).forEach(([channel, handler]) => {
+    ipcMain.handle(channel, handler)
+  })
 }
 
 // This method will be called when Electron has finished
@@ -69,16 +76,16 @@ function registerHandlers(ipcMain) {
 app.whenReady().then(async () => {
   // Initialize database first
   try {
-    await database.initialize();
-    console.log('Database initialized successfully');
+    await database.initialize()
+    console.log('Database initialized successfully')
   } catch (error) {
-    console.error('Failed to initialize database:', error);
-    app.quit();
-    return;
+    console.error('Failed to initialize database:', error)
+    app.quit()
+    return
   }
 
   // Register all handlers
-  registerHandlers(ipcMain)
+  registerHandlers()
 
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
@@ -113,17 +120,23 @@ app.whenReady().then(async () => {
 
   createWindow()
 
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  // Handle quit through dock icon (macOS)
+  app.on('before-quit', () => {
+    app.isQuitting = true
+  })
+
+  // Handle window activation
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow()
+    } else {
+      mainWindow.show()
+    }
   })
 })
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
-app.on('window-all-closed', () => {
+// Don't quit when all windows are closed (stay in tray)
+app.on('window-all-closed', (e) => {
   if (process.platform !== 'darwin') {
     app.quit()
   }

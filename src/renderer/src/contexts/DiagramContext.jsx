@@ -75,6 +75,9 @@ export const DiagramProvider = ({ children }) => {
     return savedEnv ? JSON.parse(savedEnv) : { variables: {} };
   });
 
+  // Add redo stack
+  const [redoStack, setRedoStack] = useState([]);
+
   useEffect(() => {
     if (!initialLoadComplete || !storage) return;
   
@@ -235,14 +238,102 @@ export const DiagramProvider = ({ children }) => {
     }
   }, [storage]);
 
-
+  // Clear redo stack when new actions occur
   const addToHistory = useCallback((entry) => {
     setHistory(prev => [...prev, entry]);
+    setRedoStack([]); // Clear redo stack on new action
   }, []);
 
   const clearHistory = useCallback(() => {
     setHistory([]);
   }, []);
+
+  const undoHistory = useCallback(() => {
+    if (!history.length) return;
+    
+    const lastAction = history[history.length - 1];
+    
+    // Save action to redo stack before undoing
+    setRedoStack(prev => [...prev, lastAction]);
+    
+    switch (lastAction.type) {
+      case 'nodeAdd':
+        if (lastAction.node) {
+          setNodes(nodes => nodes.filter(n => n.id !== lastAction.node.id));
+        }
+        break;
+      case 'nodeRemove':
+        if (lastAction.node) {
+          setNodes(nodes => [...nodes, lastAction.node]);
+        }
+        break;
+      case 'nodePosition':
+        if (lastAction.nodeId && lastAction.oldPosition) {
+          setNodes(nodes => nodes.map(node => 
+            node.id === lastAction.nodeId 
+              ? { ...node, position: lastAction.oldPosition }
+              : node
+          ));
+        }
+        break;
+      case 'edgeAdd':
+        if (lastAction.edge) {
+          setEdges(edges => edges.filter(e => e.id !== lastAction.edge.id));
+        }
+        break;
+      case 'edgeRemove':
+        if (lastAction.edge) {
+          setEdges(edges => [...edges, lastAction.edge]);
+        }
+        break;
+      default:
+        console.warn('Unknown history action type:', lastAction.type);
+    }
+
+    setHistory(prev => prev.slice(0, -1));
+  }, [history]);
+
+  const redoHistory = useCallback(() => {
+    if (!redoStack.length) return;
+    
+    const actionToRedo = redoStack[redoStack.length - 1];
+    
+    switch (actionToRedo.type) {
+      case 'nodeAdd':
+        if (actionToRedo.node) {
+          setNodes(nodes => [...nodes, actionToRedo.node]);
+        }
+        break;
+      case 'nodeRemove':
+        if (actionToRedo.node) {
+          setNodes(nodes => nodes.filter(n => n.id !== actionToRedo.node.id));
+        }
+        break;
+      case 'nodePosition':
+        if (actionToRedo.nodeId && actionToRedo.newPosition) {
+          setNodes(nodes => nodes.map(node => 
+            node.id === actionToRedo.nodeId 
+              ? { ...node, position: actionToRedo.newPosition }
+              : node
+          ));
+        }
+        break;
+      case 'edgeAdd':
+        if (actionToRedo.edge) {
+          setEdges(edges => [...edges, actionToRedo.edge]);
+        }
+        break;
+      case 'edgeRemove':
+        if (actionToRedo.edge) {
+          setEdges(edges => edges.filter(e => e.id !== actionToRedo.edge.id));
+        }
+        break;
+    }
+
+    // Move action back to history
+    setHistory(prev => [...prev, actionToRedo]);
+    setRedoStack(prev => prev.slice(0, -1));
+  }, [redoStack]);
 
   const generateNodeId = useCallback((type) => {
     // Map node types to 4 letter prefixes
@@ -379,22 +470,79 @@ export const DiagramProvider = ({ children }) => {
   }, [resetSequences]);
 
   // Handle node changes from React Flow
-  const onNodesChange = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    []
-  );
+  const onNodesChange = useCallback((changes) => {
+    setNodes((nds) => applyNodeChanges(changes, nds));
+    
+    changes.forEach(change => {
+      if (change.type === 'add' && change.item?.position) {
+        addToHistory({
+          type: 'nodeAdd',
+          node: change.item,
+          timestamp: Date.now()
+        });
+      } else if (change.type === 'remove') {
+        const node = nodes.find(n => n.id === change.id);
+        if (node) {
+          addToHistory({
+            type: 'nodeRemove',
+            nodeId: change.id,
+            node,
+            timestamp: Date.now()
+          });
+        }
+      } else if (change.type === 'position') {
+        const node = nodes.find(n => n.id === change.id);
+        if (node?.position && change.position) {
+          addToHistory({
+            type: 'nodePosition',
+            nodeId: change.id,
+            oldPosition: { 
+              x: node.position.x || 0, 
+              y: node.position.y || 0 
+            },
+            newPosition: { 
+              x: change.position.x || 0, 
+              y: change.position.y || 0 
+            },
+            timestamp: Date.now()
+          });
+        }
+      }
+    });
+  }, [nodes, addToHistory]);
 
   // Handle edge changes from React Flow
-  const onEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    []
-  );
+  const onEdgesChange = useCallback((changes) => {
+    setEdges((eds) => applyEdgeChanges(changes, eds));
+    
+    // Track edge additions and removals
+    changes.forEach(change => {
+      if (change.type === 'add') {
+        setHistory(prev => [...prev, {
+          type: 'edgeAdd',
+          edge: change.item,
+          timestamp: Date.now()
+        }]);
+      } else if (change.type === 'remove') {
+        setHistory(prev => [...prev, {
+          type: 'edgeRemove',
+          edgeId: change.id,
+          edge: edges.find(e => e.id === change.id), // Store full edge for restoration
+          timestamp: Date.now()
+        }]);
+      }
+    });
+  }, [edges]);
 
   // Handle new connections
-  const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
-    []
-  );
+  const onConnect = useCallback((connection) => {
+    setEdges((eds) => addEdge(connection, eds));
+    setHistory(prev => [...prev, {
+      type: 'edgeAdd',
+      edge: connection,
+      timestamp: Date.now()
+    }]);
+  }, []);
 
   const setStartNode = useCallback((nodeId) => {
     setNodes(prevNodes => {
@@ -443,6 +591,29 @@ export const DiagramProvider = ({ children }) => {
     return node.data?.result?.response || null;
   }, [nodes]);
 
+  // Update keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Check for Undo (CTRL/CMD + Z)
+      if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        undoHistory();
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Z') {
+        event.preventDefault();
+        redoHistory();
+      }
+    };
+
+    // Add event listener
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup event listener on component unmount
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [undoHistory, redoHistory]);
+
   const value = useMemo(() => ({
     nodes,
     edges,
@@ -452,6 +623,7 @@ export const DiagramProvider = ({ children }) => {
     onEdgesChange,
     onConnect,
     history,
+    redoStack,
     selectedNode,
     setSelectedNode,
     addToHistory,
@@ -500,6 +672,8 @@ export const DiagramProvider = ({ children }) => {
     autoCloseDrawer,
     setAutoCloseDrawer,
     getNodeOutput,
+    undoHistory,
+    redoHistory,
   }), [
     nodes,
     edges,
@@ -509,6 +683,7 @@ export const DiagramProvider = ({ children }) => {
     onEdgesChange,
     onConnect,
     history,
+    redoStack,
     selectedNode,
     setSelectedNode,
     addToHistory,
@@ -544,6 +719,7 @@ export const DiagramProvider = ({ children }) => {
     setEnvironmentDescription,
     lastInput,
     lastOutput,
+    setLastOutput,
     utilityDrawerOpen,
     setUtilityDrawerOpen,
     sidebarOpen,
@@ -553,6 +729,8 @@ export const DiagramProvider = ({ children }) => {
     autoCloseDrawer,
     setAutoCloseDrawer,
     getNodeOutput,
+    undoHistory,
+    redoHistory,
   ]);
 
   return (

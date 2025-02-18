@@ -75,6 +75,21 @@ const IconButton = forwardRef(({
       hover: 'orange-600',
       active: 'orange-700',
     },
+    aqua: {
+      base: 'aqua-500',
+      hover: 'aqua-600',
+      active: 'aqua-700',
+    },
+    pink: {
+      base: 'pink-500',
+      hover: 'pink-600',
+      active: 'pink-700',
+    },
+    yellow: {
+      base: 'yellow-500',
+      hover: 'yellow-600',
+      active: 'yellow-700',
+    },
   };
 
   const sizes = {

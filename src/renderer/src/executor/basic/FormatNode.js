@@ -14,11 +14,14 @@ export default class FormatNode {
   }
 
   async execute(data, inputData, sourceNodes) {
-    if (!data.id) return formatter.errorResponse('Node ID is missing', 'unknown');
-  
     try {
+      // Ensure node has an ID
+      const nodeId = data.id || 'FORMAT_01';
+      
       const { template, formatType } = data;
-      if (!template) return formatter.errorResponse('Template is missing', data.id);
+      if (!template) {
+        return formatter.errorResponse('Template is missing', nodeId);
+      }
   
       // Process source data
       const sourceData = sourceNodes?.reduce((acc, source) => ({
@@ -26,13 +29,19 @@ export default class FormatNode {
         [source.id]: source.data
       }), {}) || {};
   
-      // Create template context
+      // Get the most recent source node's data
+      const mostRecentSource = sourceNodes?.[sourceNodes.length - 1];
+      const primaryData = mostRecentSource?.data?.response || inputData;
+  
+      // Create template context with multiple ways to access data
       const templateContext = {
         sourceData,
-        inputData: sourceData[Object.keys(sourceData)[0]],
-        data: sourceData[Object.keys(sourceData)[0]]?.response?.data,
-        raw: sourceData[Object.keys(sourceData)[0]]?.response?.data
+        inputData: primaryData,
+        data: primaryData,
+        raw: sourceData
       };
+  
+      console.log('Format node template context:', templateContext); // Debug log
   
       // Execute template
       const compiled = Handlebars.compile(template);
@@ -66,17 +75,18 @@ export default class FormatNode {
   
       // Update node data if available
       if (this.updateNodeData) {
-        await this.updateNodeData(data.id, 'lastOutput', {
+        await this.updateNodeData(nodeId, 'lastOutput', {
           sourceData,
           output: parsedResult,
           timestamp: new Date().toISOString()
         });
       }
   
-      return formatter.standardResponse(true, parsedResult, null, data.id);
+      return formatter.standardResponse(true, parsedResult, null, nodeId);
   
     } catch (error) {
-      return formatter.errorResponse(error, data.id);
+      console.error('Format node error:', error);
+      return formatter.errorResponse(error.message, data.id || 'FORMAT_01');
     }
   }
 } 

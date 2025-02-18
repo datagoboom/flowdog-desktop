@@ -34,11 +34,25 @@ export default class DatabaseQueryNode {
 
       try {
         // Replace {{variable}} templates in query
+        // Replace {{variable}} templates in query
         processedQuery = query.replace(/\{\{(.*?)\}\}/g, (match, path) => {
           try {
             const value = jq.evaluate(path.trim(), inputData);
-            processedParams.push(value);
-            return `$${processedParams.length}`; // Replace with parameterized query placeholder
+            // Handle different value types
+            if (value === null || value === undefined) {
+              return 'NULL';
+            }
+            if (typeof value === 'number') {
+              return value;
+            }
+            if (typeof value === 'boolean') {
+              return value ? 1 : 0;
+            }
+            if (Array.isArray(value) || typeof value === 'object') {
+              return `'${JSON.stringify(value)}'`; // Single quotes for JSON
+            }
+            // Escape single quotes and wrap in single quotes
+            return `'${value.toString().replace(/'/g, "''")}'`; // Use single quotes, escape internal single quotes
           } catch (error) {
             throw new Error(`Failed to process template ${match}: ${error.message}`);
           }

@@ -21,23 +21,28 @@ export default class ParserNode {
         return formatter.errorResponse('Template expression cannot be empty');
       }
 
-      // Get the source node ID from the template
-      const sourceNodeId = template.split('.')[0];
+      // Split the template path
+      const pathParts = template.split('.');
       
-      // Get the source data from the nested structure
-      const sourceData = inputData[Object.keys(inputData)[0]][sourceNodeId];
+      // Get the source node ID
+      const sourceNodeId = pathParts[0];
+      
+      // Get the source data by traversing the path
+      let sourceData = inputData;
+      for (const part of pathParts) {
+        if (sourceData === undefined) break;
+        sourceData = sourceData[part];
+      }
+
       console.log('Source data for parsing:', sourceData);
 
-      if (!sourceData || !sourceData.success) {
+      if (!sourceData) {
         return formatter.errorResponse('No valid source data found');
       }
 
       try {
-        // Adjust the template to remove the node ID prefix
-        const adjustedTemplate = template.substring(template.indexOf('.') + 1);
-        console.log('Using adjusted template:', adjustedTemplate);
-
-        const result = jq.evaluate(adjustedTemplate, sourceData);
+        // No need to adjust template since we've already traversed the path
+        const result = sourceData;
         console.log('Parser result:', result);
         return formatter.standardResponse(true, result);
       } catch (error) {

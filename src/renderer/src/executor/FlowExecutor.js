@@ -14,6 +14,7 @@ import TestNode from './basic/TestNode';
 import CommandNode from './basic/CommandNode';
 import DatabaseQueryNode from './basic/DatabaseQueryNode';
 import RSSNode from './basic/RSSNode';
+
 const jq = new JQParser();
 
 export default class FlowExecutor {
@@ -49,7 +50,7 @@ export default class FlowExecutor {
     this.fileNode = new FileNode();
     this.parserNode = new ParserNode();
     this.conditionalNode = new ConditionalNode();
-    this.iteratorNode = new IteratorNode(this.updateNodeData);
+    this.iteratorNode = new IteratorNode(this.updateNodeData, this.getEnvVar.bind(this));
     this.testNode = new TestNode();
     this.commandNode = new CommandNode();
     this.databaseQueryNode = new DatabaseQueryNode();
@@ -58,17 +59,19 @@ export default class FlowExecutor {
       this.setEnvironmentVariable,
       this.localEnvironment
     );
+
+    // Node executor mapping
     this.executors = {
-      command: CommandNode,
-      databaseQuery: DatabaseQueryNode,
-      parser: ParserNode,
-      rss: RSSNode,
-      http: HttpNode,
-      format: FormatNode,
-      file: FileNode,
-      conditional: ConditionalNode,
-      iterator: IteratorNode,
-      test: TestNode
+      http: this.httpNode,
+      format: this.formatNode,
+      file: this.fileNode,
+      parser: this.parserNode,
+      conditional: this.conditionalNode,
+      iterator: this.iteratorNode,
+      test: this.testNode,
+      command: this.commandNode,
+      databaseQuery: this.databaseQueryNode,
+      rss: this.rssNode
     };
   }
 
@@ -79,7 +82,6 @@ export default class FlowExecutor {
   }
 
   logAction(nodeType, status, message, details = null) {
-    ; // Debug
     if (this.addAction) {
       const action = {
         type: nodeType.toUpperCase(),
@@ -88,10 +90,7 @@ export default class FlowExecutor {
         data: details,
         timestamp: new Date().toISOString()
       };
-      ; // Debug
       this.addAction(action);
-    } else {
-      ; // Debug
     }
   }
 
@@ -226,9 +225,52 @@ export default class FlowExecutor {
         this.setLastInput(this.lastInput);
       }
 
-      // Execute node
-      const output = await this.executeNode(node, null, sourceNodes);
+      // Execute node using the appropriate executor
+      const executor = this.executors[node.type];
+      if (!executor) {
+        throw new Error(`No executor found for node type: ${node.type}`);
+      }
+
+      const output = await executor.execute(node.data, this.lastInput[nodeId], sourceNodes);
       this.nodeOutputs.set(nodeId, output);
+
+      // Log output for visualization/debugging
+      if (this.setLastOutput) {
+        this.setLastOutput({
+          nodeId: node.id,
+          type: node.type,
+          data: output,
+          timestamp: new Date().toISOString(),
+          iteration: output?.iteration || this.lastInput[nodeId]?.iteration,
+          workflowContext: {
+            iterationId: output?.iteration?.current ? `iteration_${output.iteration.current}` : undefined,
+            parentNodeId: sourceNodes[0]?.id,
+            sequence: node.type === 'iterator' ? 'start' : 
+                     this.lastInput[nodeId]?.iteration ? `step_${this.lastInput[nodeId].iteration.current}` : undefined
+          }
+        });
+      }
+
+      // Get iteration info from input or result
+      const iterationInfo = output?.iteration || this.lastInput[nodeId]?.iteration;
+      
+      // Create unique log key based on current node and iteration
+      const logKey = `${node.type.toUpperCase()}_${node.id}${
+        iterationInfo ? `_iter_${iterationInfo.current}` : ''
+      }`;
+
+      // Log the execution result
+      const logEntry = {
+        name: node.data.name || node.id,
+        source: logKey,
+        sourceNodes: sourceNodes.map(n => n.id).join(', '),
+        data: output,
+        timestamp: new Date().toISOString(),
+        iteration: iterationInfo
+      };
+
+      this.addLog(logEntry);
+      this.loggedNodes.add(logKey);
 
       // Handle iterator nodes
       if (output?.isIterator) {
@@ -257,7 +299,7 @@ export default class FlowExecutor {
     }
   }
 
-  // New helper method for handling iterator nodes
+  // Helper method for handling iterator nodes
   async handleIteratorNode(node, output, updateNodeSequence, incrementSequence) {
     if (!output?.iteration?.hasMore) {
       return output;
@@ -271,30 +313,44 @@ export default class FlowExecutor {
     if (!node) return;
   
     try {
+      // Get all downstream nodes
       const downstreamNodes = this.getDownstreamNodes(nodeId);
+      
+      // Get initial iterator output
       let currentOutput = await this.executeNodeAtLevel(nodeId, updateNodeSequence, incrementSequence);
       
+      // If not an iterator or no output, return
       if (!currentOutput?.isIterator) return currentOutput;
   
-      // Continue while the outer iterator has more items
+      // Continue while the iterator has more items
       while (currentOutput?.shouldContinue) {
-        const currentOuterItem = currentOutput.response;
+        // Store the current item's output
+        const iterationOutput = currentOutput;
         
-        // For each downstream node that is an iterator
+        // Process all downstream nodes for this iteration
         for (const downstreamId of downstreamNodes) {
           const downstreamNode = this.nodes.find(n => n.id === downstreamId);
-          if (downstreamNode.type !== 'iterator') continue;
-          
-          // Execute the inner iterator
-          let innerOutput = await this.executeNodeAtLevel(
-            downstreamId,
-            updateNodeSequence,
-            incrementSequence
-          );
-          
-          // Complete the full inner iteration cycle
-          while (innerOutput?.shouldContinue) {
-            innerOutput = await this.executeNodeAtLevel(
+          if (!downstreamNode) continue;
+  
+          // If downstream node is an iterator, handle nested iteration
+          if (downstreamNode.type === 'iterator') {
+            let innerOutput = await this.executeNodeAtLevel(
+              downstreamId,
+              updateNodeSequence,
+              incrementSequence
+            );
+            
+            // Process all items in the inner iterator
+            while (innerOutput?.shouldContinue) {
+              innerOutput = await this.executeNodeAtLevel(
+                downstreamId,
+                updateNodeSequence,
+                incrementSequence
+              );
+            }
+          } else {
+            // For non-iterator nodes, execute once with current iteration data
+            await this.executeNodeAtLevel(
               downstreamId,
               updateNodeSequence,
               incrementSequence
@@ -302,7 +358,7 @@ export default class FlowExecutor {
           }
         }
   
-        // Get next item from outer iterator
+        // Get next item from iterator
         currentOutput = await this.executeNodeAtLevel(
           nodeId,
           updateNodeSequence,
@@ -316,74 +372,20 @@ export default class FlowExecutor {
       throw error;
     }
   }
-  
-  async executeNode(node, inputData = null, sourceNodes = []) {
-    const NodeExecutor = this.executors[node.type];
-    if (!NodeExecutor) {
-      throw new Error(`No execution method found for node type: ${node.type}`);
-    }
-
-    const executor = new NodeExecutor(
-      this.getEnvVar,
-      this.setEnvironmentVariable,
-      this.localEnvironment
-    );
-
-    const result = await executor.execute(node.data, inputData, sourceNodes);
-
-    // Log output
-    if (this.setLastOutput) {
-      this.setLastOutput({
-        nodeId: node.id,
-        type: node.type,
-        data: result,
-        timestamp: new Date().toISOString(),
-        iteration: result?.iteration || inputData?.iteration,
-        workflowContext: {
-          iterationId: result?.iteration?.current ? `iteration_${result.iteration.current}` : undefined,
-          parentNodeId: sourceNodes[0]?.id,
-          sequence: node.type === 'iterator' ? 'start' : 
-                   inputData?.iteration ? `step_${inputData.iteration.current}` : undefined
-        }
-      });
-    }
-
-    // Get iteration info from input or result
-    const iterationInfo = result?.iteration || inputData?.iteration;
-    
-    // Create unique log key based on current node and iteration
-    const logKey = `${node.type.toUpperCase()}_${node.id}${
-      iterationInfo ? `_iter_${iterationInfo.current}` : ''
-    }`;
-
-    // Log the execution result, not source data
-    const logEntry = {
-      name: node.data.name || node.id,
-      source: logKey,
-      sourceNodes: sourceNodes.map(n => n.id).join(', '),
-      data: result, // Log the result of current node execution
-      timestamp: new Date().toISOString(),
-      iteration: iterationInfo
-    };
-
-    this.addLog(logEntry);
-    this.loggedNodes.add(logKey);
-
-    // Preserve iteration context
-    if (inputData?.iteration) {
-      result.iteration = inputData.iteration;
-    }
-
-    return result;
-  }
-
   // Update resetIteratorState to use the iterator node's method
   resetIteratorState(nodeId) {
-    this.iteratorNode.resetState(nodeId);
+    if (nodeId) {
+      this.iteratorNode.resetState(nodeId);
+    } else {
+      for (const [type, executor] of Object.entries(this.executors)) {
+        if (executor.resetState) {
+          executor.resetState();
+        }
+      }
+    }
   }
 
   // Helper functions
-  
   getDownstreamNodes(nodeId, visited = new Set()) {
     visited.add(nodeId);
     
@@ -401,11 +403,11 @@ export default class FlowExecutor {
     return Array.from(new Set(directDownstream));
   }
 
-  decodeHTMLEntities(text){
+  decodeHTMLEntities(text) {
     const textarea = document.createElement('textarea');
     textarea.innerHTML = text;
     return textarea.value;
-  };
+  }
 
   simplifyXmlObject(obj) {
     // Base case: if we have a content property, return its value
@@ -449,6 +451,4 @@ export default class FlowExecutor {
     // Default case: return the value as is
     return obj;
   }
-
-  
-} 
+}

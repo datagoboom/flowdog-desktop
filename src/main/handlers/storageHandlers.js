@@ -5,27 +5,112 @@ import { Client } from 'pg'
 import mysql from 'mysql2/promise'
 import { open } from 'sqlite'
 import sqlite3 from 'sqlite3'
+import { readFile, writeFile, mkdir, readdir, unlink } from 'fs/promises'
+import path from 'path'
+import { app } from 'electron'
+import fs from 'fs/promises'
+
+// Create a flows directory in the app's user data folder
+const flowsDir = path.join(app.getPath('userData'), 'flows')
+const ensureFlowsDir = async () => {
+  try {
+    await fs.mkdir(flowsDir, { recursive: true })
+  } catch (error) {
+    console.error('Failed to create flows directory:', error)
+  }
+}
 
 export const storageHandlers = {
-  'storage.save-flow': async (flowData) => {
+  'storage.save-flow': async (event, flowData) => {
     try {
-      const id = flowData.id || uuidv4()
-      await database.saveFlow({ ...flowData, id })
-      return { success: true, data: { id } }
+      console.log('Main process received flow data:', flowData); // Debug log
+      
+      await ensureFlowsDir();
+      
+      // Ensure flowData is an object
+      if (!flowData || typeof flowData !== 'object') {
+        console.error('Invalid flow data:', flowData); // Debug log
+        throw new Error(`Invalid flow data received: ${JSON.stringify(flowData)}`);
+      }
+      
+      // Create a new object with the data
+      const flow = {
+        id: flowData.id || Date.now().toString(),
+        name: flowData.name || 'Untitled Flow',
+        description: flowData.description || '',
+        nodes: flowData.nodes || [],
+        edges: flowData.edges || [],
+        timestamp: Date.now()
+      };
+      
+      console.log('Saving flow:', flow); // Debug log
+      
+      // Save to a JSON file
+      const filePath = path.join(flowsDir, `${flow.id}.json`);
+      await writeFile(filePath, JSON.stringify(flow, null, 2));
+      
+      return { success: true, flowId: flow.id };
     } catch (error) {
-      return { success: false, error: error.message }
+      console.error('Failed to save flow:', error);
+      throw error;
     }
   },
 
-  'storage.open-flow': async (flowId) => {
+  'storage.list-flows': async (_) => {
     try {
-      const flow = await database.getFlow(flowId)
-      if (!flow) {
-        throw new Error('Flow not found')
+      await ensureFlowsDir()
+      
+      // Read all JSON files in the flows directory
+      const files = await fs.readdir(flowsDir)
+      const flows = []
+      
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const filePath = path.join(flowsDir, file)
+          const content = await readFile(filePath, 'utf-8')
+          const flowData = JSON.parse(content)
+          flows.push({
+            id: flowData.id,
+            name: flowData.name,
+            description: flowData.description,
+            timestamp: flowData.timestamp,
+            nodes: flowData.nodes,
+            edges: flowData.edges
+          })
+        }
       }
-      return { success: true, data: flow }
+      
+      // Sort by timestamp, newest first
+      return flows.sort((a, b) => b.timestamp - a.timestamp)
     } catch (error) {
-      return { success: false, error: error.message }
+      console.error('Failed to list flows:', error)
+      throw error
+    }
+  },
+
+  'storage.open-flow': async (event, flowId) => {
+    try {
+      if (!flowId || typeof flowId !== 'string') {
+        throw new Error(`Invalid flow ID: ${flowId}`);
+      }
+
+      const filePath = path.join(flowsDir, `${flowId}.json`);
+      const content = await readFile(filePath, 'utf-8');
+      return JSON.parse(content);
+    } catch (error) {
+      console.error('Failed to open flow:', error);
+      throw error;
+    }
+  },
+
+  'storage.delete-flow': async (_, flowId) => {
+    try {
+      const filePath = path.join(flowsDir, `${flowId}.json`)
+      await fs.unlink(filePath)
+      return { success: true }
+    } catch (error) {
+      console.error('Failed to delete flow:', error)
+      throw error
     }
   },
 
@@ -187,4 +272,41 @@ export const storageHandlers = {
       return { success: false, error: error.message };
     }
   }
+}
+
+// Register flow storage handlers
+export function registerStorageHandlers(ipcMain, db) {
+  // ... existing handlers ...
+
+  // List all saved flows
+  ipcMain.handle('storage.list-flows', async () => {
+    try {
+      const flows = await db.models.Flow.findAll({
+        order: [['updatedAt', 'DESC']]
+      });
+      return flows.map(flow => ({
+        id: flow.id,
+        name: flow.name,
+        description: flow.description,
+        timestamp: flow.updatedAt,
+        data: flow.data
+      }));
+    } catch (error) {
+      console.error('Failed to list flows:', error);
+      throw error;
+    }
+  });
+
+  // Delete a flow
+  ipcMain.handle('storage.delete-flow', async (event, flowId) => {
+    try {
+      const result = await db.models.Flow.destroy({
+        where: { id: flowId }
+      });
+      return { success: true, deletedCount: result };
+    } catch (error) {
+      console.error('Failed to delete flow:', error);
+      throw error;
+    }
+  });
 } 

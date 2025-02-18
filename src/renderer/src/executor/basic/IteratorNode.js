@@ -1,8 +1,12 @@
 import formatter from '../../utils/formatter';
+import JQParser from '../../utils/jq';
+
+const jq = new JQParser();
 
 export default class IteratorNode {
-  constructor(updateNodeData) {
+  constructor(updateNodeData, getEnvVar) {
     this.updateNodeData = updateNodeData;
+    this.getEnvVar = getEnvVar;
     this.iteratorState = new Map();
   }
 
@@ -12,6 +16,32 @@ export default class IteratorNode {
     } else {
       this.iteratorState.clear();
     }
+  }
+
+  evaluateEnvTemplate(template, context) {
+    if (!template?.includes('{{')) return template;
+    
+    let result = template;
+    const matches = template.match(/\{\{(.+?)\}\}/g);
+    if (matches) {
+      for (const match of matches) {
+        const path = match.slice(2, -2).trim();
+        let value;
+        
+        if (path.startsWith('$')) {
+          value = this.getEnvVar(path);
+          if (value === undefined) {
+            console.warn(`Environment variable ${path} not found`);
+            value = '';
+          }
+        } else {
+          value = jq.evaluate(path, context);
+        }
+        
+        result = result.replace(match, value);
+      }
+    }
+    return result;
   }
 
   async execute(data, inputData) {
@@ -32,13 +62,27 @@ export default class IteratorNode {
       if (mode === 'custom') {
         itemsToIterate = data.outputList;
       } else if (mode === 'input' && inputData) {
-        itemsToIterate = data.outputList || [];
+        // Handle both direct array input and RSS feed items
+        itemsToIterate = inputData?.response?.items || data.outputList || [];
+        
+        // If array path is specified, try to extract array using it
+        if (data.arrayPath) {
+          try {
+            itemsToIterate = jq.evaluate(data.arrayPath, inputData);
+            if (!Array.isArray(itemsToIterate)) {
+              throw new Error(`Path ${data.arrayPath} did not resolve to an array`);
+            }
+          } catch (error) {
+            console.error('Array path evaluation failed:', error);
+            return formatter.errorResponse(`Failed to get array from path: ${error.message}`);
+          }
+        }
       } else {
         itemsToIterate = [];
       }
   
       if (!Array.isArray(itemsToIterate)) {
-        throw new Error('Items to iterate must be an array');
+        return formatter.errorResponse('Items to iterate must be an array');
       }
   
       let state = this.iteratorState.get(nodeId);
@@ -89,7 +133,18 @@ export default class IteratorNode {
   
       const currentItem = state.items[state.currentIndex];
       
-      await this.updateNodeData(nodeId, 'result', currentItem);
+      // Apply any template transformations to the current item
+      let processedItem = currentItem;
+      if (data.itemTemplate) {
+        try {
+          const context = { ...inputData, item: currentItem };
+          processedItem = this.evaluateEnvTemplate(data.itemTemplate, context);
+        } catch (error) {
+          console.error('Item templating failed:', error);
+        }
+      }
+      
+      await this.updateNodeData(nodeId, 'result', processedItem);
       await this.updateNodeData(nodeId, 'progress', {
         current: state.currentIndex + 1,
         total: state.totalItems,
@@ -102,13 +157,18 @@ export default class IteratorNode {
       const hasMore = state.currentIndex < state.items.length;
       
       return {
-        ...formatter.standardResponse(true, currentItem),
+        ...formatter.standardResponse(true, processedItem),
         isIterator: true,
         shouldContinue: hasMore || (state.isInnerIterator && inputData?.shouldContinue),
         iteration: {
-          current: state.isInnerIterator ? state.currentIndex : parentIteration,
+          current: state.currentIndex,
           total: state.totalItems,
           hasMore: hasMore || (state.isInnerIterator && inputData?.shouldContinue)
+        },
+        progress: {
+          current: state.currentIndex,
+          total: state.totalItems,
+          percentage: Math.round((state.currentIndex / state.totalItems) * 100)
         }
       };
   

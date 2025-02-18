@@ -87,3 +87,24 @@ if (process.contextIsolated) {
   window.electron = electronAPI
   window.api = api
 }
+
+// Expose protected methods that allow the renderer process to use
+// the ipcRenderer without exposing the entire object
+contextBridge.exposeInMainWorld(
+  'api', {
+    invoke: (channel, data) => {
+      // whitelist channels
+      const validChannels = [
+        'storage.save-flow',
+        'storage.open-flow',
+        'storage.list-flows',
+        'storage.delete-flow',
+        // ... other valid channels ...
+      ];
+      if (validChannels.includes(channel)) {
+        return ipcRenderer.invoke(channel, data);
+      }
+    },
+    // ... other methods ...
+  }
+);

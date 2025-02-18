@@ -19,6 +19,16 @@ const Button = forwardRef(({
   const { isDark } = useTheme();
 
   const variants = {
+    attached: `
+      p-0
+      rounded-none
+      border-none
+      bg-opacity-10 
+      hover:bg-opacity-20
+      active:bg-opacity-30
+      h-full
+       ${color !== 'white' ? `text-semantic-${color}` : 'text-white'}
+    `,
     filled: `
       ${isDark ? 'bg-opacity-90' : 'bg-opacity-100'}
       hover:bg-opacity-80

@@ -18,11 +18,20 @@ export function ApiProvider({ children }) {
 
   // Storage API for flows
   const saveFlow = useCallback(async (flowData) => {
+    console.log('ApiContext saveFlow called with:', flowData); // Debug log
     return await window.api.invoke('storage.save-flow', flowData);
   }, []);
 
   const openFlow = useCallback(async (flowId) => {
     return await window.api.invoke('storage.open-flow', flowId);
+  }, []);
+
+  const listFlows = useCallback(async () => {
+    return await window.api.invoke('storage.list-flows');
+  }, []);
+
+  const deleteFlow = useCallback(async (flowId) => {
+    return await window.api.invoke('storage.delete-flow', flowId);
   }, []);
 
   // Database Connections API
@@ -62,6 +71,8 @@ export function ApiProvider({ children }) {
     storage: {
       saveFlow,
       openFlow,
+      listFlows,
+      deleteFlow,
       saveConnection,
       listConnections,
       deleteConnection,
