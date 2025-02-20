@@ -31,8 +31,9 @@ const ConditionalNode = memo(({ data, selected, id, isConnectable }) => {
         position={Position.Right}
         id="output-true"
         isConnectable={isConnectable}
-        className="handle-right handle-output-dark"
+        className="handle-right handle-output-dark handle-green-dark"
         style={{ top: '25%' }}
+        data-testid="true-handle"
       />
 
       {/* False Path (Bottom) */}
@@ -43,6 +44,7 @@ const ConditionalNode = memo(({ data, selected, id, isConnectable }) => {
         isConnectable={isConnectable}
         className="handle-right handle-output-dark handle-red-dark"
         style={{ top: '75%' }}
+        data-testid="false-handle"
       />
     </>
   );

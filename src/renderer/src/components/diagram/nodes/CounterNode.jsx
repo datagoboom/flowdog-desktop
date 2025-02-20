@@ -8,6 +8,9 @@ import { cn } from '../../../utils';
 const CounterNode = memo(({ data, selected, id, isConnectable }) => {
   const { isDark } = useTheme();
   
+  // Format the counter display text
+  const counterDisplay = `Count: ${data?.incrementor || 0}${data?.limit ? ` / ${data.limit}` : ''}`;
+  
   return (
     <>
       <Handle
@@ -29,7 +32,9 @@ const CounterNode = memo(({ data, selected, id, isConnectable }) => {
         selected={selected}
         data={data}
         isConnectable={isConnectable}
-      />
+      >
+        {counterDisplay}
+      </BaseNode>
       
       <Handle
         type="source"

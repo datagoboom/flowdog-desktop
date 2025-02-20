@@ -245,9 +245,30 @@ export default class FlowExecutor {
         throw new Error(`No executor found for node type: ${node.type}`);
       }
 
+      // get edge name(s) connected to this node (edges where target is this node)
+      const conditionalEdges = this.edges
+        .filter(edge => edge.target === nodeId)
+        .filter(edge => edge.source.includes('COND_'));
+
+      // get input that comes from a conditional node
+      let inputs = this.lastInput[nodeId]
+      let conditionalInputNodes = Object.keys(inputs).filter(key => key.includes('COND_'));
+
+      conditionalEdges.forEach(edge => {
+        let srcHandle = edge.sourceHandle;
+        let condInput = sourceNodes.find(node => node.id === edge.source);
+        if(condInput && condInput.data.response.outputPath !== srcHandle) {
+          let lastInput = this.lastInput
+          lastInput[nodeId][edge.source] = null;
+          this.setLastInput(lastInput);
+          console.log("New Last Input: ", this.lastInput);
+        }else{
+          console.log("Cond Input is VALID ", condInput);
+        }
+      });
+      
       const output = await executor.execute(node.data, this.lastInput[nodeId], sourceNodes, nodeId);
       this.nodeOutputs.set(nodeId, output);
-
       // Log output for visualization/debugging
       if (this.setLastOutput) {
         this.setLastOutput({
@@ -321,6 +342,7 @@ export default class FlowExecutor {
   
     return output; // Return the current iteration output
   }
+
 
   async executeIteratorAndDescendants(nodeId, updateNodeSequence, incrementSequence) {
     const node = this.nodes.find(n => n.id === nodeId);

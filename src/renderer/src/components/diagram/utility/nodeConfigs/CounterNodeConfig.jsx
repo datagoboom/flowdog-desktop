@@ -6,8 +6,11 @@ import { Body2 } from '../../../common/Typography';
 import { RotateCcw } from 'lucide-react';
 
 const CounterNodeConfig = memo(({ node }) => {
-  const { updateNodeData } = useDiagram();
+  const { updateNodeData, selectedNode } = useDiagram();
 
+  // Make sure we're using the correct node's data
+  const nodeData = node?.data || {};
+  
   const handleLimitChange = useCallback((e) => {
     const value = parseInt(e.target.value, 10);
     if (!isNaN(value) && value > 0) {
@@ -19,8 +22,9 @@ const CounterNodeConfig = memo(({ node }) => {
     updateNodeData(node.id, 'incrementor', 0);
   }, [node.id, updateNodeData]);
 
-  const currentCount = node.data?.incrementor || 0;
-  const limit = node.data?.limit || Infinity;
+  // Get the current count from this specific node's data
+  const currentCount = nodeData.incrementor || 0;
+  const limit = nodeData.limit || Infinity;
   const hasReachedLimit = currentCount >= limit;
 
   return (
