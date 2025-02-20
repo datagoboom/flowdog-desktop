@@ -49,15 +49,6 @@ export default class IteratorNode {
       const nodeId = data.id;
       const mode = data.mode || 'input';
       
-      console.log("Iterator Node Data:", {
-        nodeId,
-        mode,
-        fullData: data,
-        outputList: data.outputList,
-        inputData,
-        currentState: this.iteratorState.get(nodeId)
-      });
-      
       let itemsToIterate;
       if (mode === 'custom') {
         itemsToIterate = data.outputList;

@@ -6,8 +6,10 @@ import Divider from './Divider';
 import Image from './Image';
 import { cn } from '../../utils';
 import { useTheme } from '../../contexts/ThemeContext';
+
 const Card = ({
   variant = 'default',
+  layout = 'vertical',
   children,
   className = '',
   hover = true,
@@ -19,11 +21,12 @@ const Card = ({
 
   return (
     <Box
-      className={`
-        ${variant === 'node' ? 'p-[4px]' : ''}
-        ${variant === 'node' && isDark ? 'bg-slate-800' : 'bg-slate-300'}
-        ${className}
-      `.trim()}
+      className={cn(
+        layout === 'horizontal' && 'flex',
+        variant === 'node' ? 'p-[4px]' : '',
+        variant === 'node' && isDark ? 'bg-slate-800' : 'bg-slate-300',
+        className
+      )}
       blur={blur}
       opacity={opacity}
       {...props}
@@ -46,6 +49,36 @@ const Card = ({
   );
 };
 
+const CardMedia = ({
+  src,
+  alt,
+  className = '',
+  aspectRatio = 'square',
+  ...props
+}) => {
+  const aspectRatioClasses = {
+    'square': 'aspect-square',
+    '16/9': 'aspect-video',
+    '4/3': 'aspect-4/3',
+    'auto': ''
+  };
+
+  return (
+    <div className={cn(
+      'overflow-hidden',
+      aspectRatioClasses[aspectRatio],
+      className
+    )}>
+      <Image
+        src={src}
+        alt={alt}
+        className="w-full h-full object-cover"
+        {...props}
+      />
+    </div>
+  );
+};
+
 const CardHeader = ({
   title,
   subtitle,
@@ -55,7 +88,7 @@ const CardHeader = ({
   ...props
 }) => {
   return (
-    <div className={`space-y-4 ${className}`.trim()} {...props}>
+    <div className={cn('space-y-4', className)} {...props}>
       {image && (
         <div className="-mx-4 -mt-4 mb-4">
           <Image
@@ -86,7 +119,7 @@ const CardContent = ({
   ...props
 }) => {
   return (
-    <div className={`py-2 ${className}`.trim()} {...props}>
+    <div className={cn('py-2', className)} {...props}>
       {children}
     </div>
   );
@@ -102,14 +135,10 @@ const CardFooter = ({
     <>
       {divider && <Divider spacing={2} />}
       <div 
-        className={`
-          flex
-          items-center
-          justify-between
-          gap-4
-          pt-2
-          ${className}
-        `.trim()}
+        className={cn(
+          'flex items-center justify-between gap-4 pt-2',
+          className
+        )}
         {...props}
       >
         {children}
@@ -125,6 +154,15 @@ Card.propTypes = {
   hover: PropTypes.bool,
   blur: PropTypes.number,
   opacity: PropTypes.number,
+  variant: PropTypes.oneOf(['default', 'node']),
+  layout: PropTypes.oneOf(['vertical', 'horizontal'])
+};
+
+CardMedia.propTypes = {
+  src: PropTypes.string.isRequired,
+  alt: PropTypes.string.isRequired,
+  className: PropTypes.string,
+  aspectRatio: PropTypes.oneOf(['square', '16/9', '4/3', 'auto'])
 };
 
 CardHeader.propTypes = {
@@ -147,6 +185,7 @@ CardFooter.propTypes = {
 };
 
 // Compound components
+Card.Media = CardMedia;
 Card.Header = CardHeader;
 Card.Content = CardContent;
 Card.Footer = CardFooter;

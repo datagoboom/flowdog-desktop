@@ -14,11 +14,12 @@ import TestNode from './basic/TestNode';
 import CommandNode from './basic/CommandNode';
 import DatabaseQueryNode from './basic/DatabaseQueryNode';
 import RSSNode from './basic/RSSNode';
-
+import PromptNode from './basic/PromptNode';
+import CounterNode from './basic/CounterNode';
 const jq = new JQParser();
 
 export default class FlowExecutor {
-  constructor(nodes, edges, addToHistory, addLog, setExecutingNodeIds, updateNodeData, setLastOutput, setLastInput, setEnvironmentVariable, environment) {
+  constructor(nodes, edges, addToHistory, addLog, setExecutingNodeIds, updateNodeData, setLastOutput, setLastInput, setEnvironmentVariable, environment, httpRequest) {
     this.nodes = nodes;
     this.edges = edges;
     this.addAction = addToHistory;
@@ -33,31 +34,44 @@ export default class FlowExecutor {
     this.loggedNodes = new Set();
     this.lastInput = null;
     this.stepDelay = 300;
+    this.window = window;
+    
     // Iterator state
     this.iteratorState = new Map(); // Map of nodeId -> { currentIndex, items }
     // Initialize executingNodes Set
     this.executingNodes = new Set();
     this.environment = environment;
     this.localEnvironment = { ...environment }; // Add local copy of environment
-    
-    // Initialize node executors
     this.httpNode = new HttpNode(
+      this.getEnvVar.bind(this),
+      this.setEnvironmentVariable,
+      this.localEnvironment,
+      (config) => httpRequest(config)
+    );
+    this.formatNode = new FormatNode(this.updateNodeData);
+    this.fileNode = new FileNode(this.window);
+    this.parserNode = new ParserNode();
+    this.conditionalNode = new ConditionalNode(
       this.getEnvVar.bind(this),
       this.setEnvironmentVariable,
       this.localEnvironment
     );
-    this.formatNode = new FormatNode(this.updateNodeData);
-    this.fileNode = new FileNode();
-    this.parserNode = new ParserNode();
-    this.conditionalNode = new ConditionalNode();
     this.iteratorNode = new IteratorNode(this.updateNodeData, this.getEnvVar.bind(this));
     this.testNode = new TestNode();
     this.commandNode = new CommandNode();
     this.databaseQueryNode = new DatabaseQueryNode();
+    this.counterNode = new CounterNode(this.updateNodeData);
     this.rssNode = new RSSNode(
       this.getEnvVar.bind(this),
       this.setEnvironmentVariable,
-      this.localEnvironment
+      this.localEnvironment,
+      (config) => httpRequest(config)
+    );
+    this.promptNode = new PromptNode(
+      this.getEnvVar.bind(this),
+      this.setEnvironmentVariable,
+      this.localEnvironment,
+      (config) => httpRequest(config)
     );
 
     // Node executor mapping
@@ -71,7 +85,9 @@ export default class FlowExecutor {
       test: this.testNode,
       command: this.commandNode,
       databaseQuery: this.databaseQueryNode,
-      rss: this.rssNode
+      rss: this.rssNode,
+      prompt: this.promptNode,
+      counter: this.counterNode
     };
   }
 
@@ -105,11 +121,9 @@ export default class FlowExecutor {
     try {
       // Get all nodes by levels
       const nodeLevels = this.getNodesByLevel();
-      console.log('Execution levels:', nodeLevels);
       
       // Execute nodes level by level
       for (const level of nodeLevels) {
-        console.log('Executing level:', level);
         
         // First, execute non-iterator nodes in this level
         const nonIteratorNodes = level.filter(nodeId => {
@@ -231,7 +245,7 @@ export default class FlowExecutor {
         throw new Error(`No executor found for node type: ${node.type}`);
       }
 
-      const output = await executor.execute(node.data, this.lastInput[nodeId], sourceNodes);
+      const output = await executor.execute(node.data, this.lastInput[nodeId], sourceNodes, nodeId);
       this.nodeOutputs.set(nodeId, output);
 
       // Log output for visualization/debugging

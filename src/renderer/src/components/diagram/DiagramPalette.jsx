@@ -1,4 +1,4 @@
-import { memo, useState, useMemo } from 'react';
+import { memo, useState, useMemo, useEffect } from 'react';
 import { Controls } from 'reactflow';
 import { 
   Play, 
@@ -36,6 +36,7 @@ const DiagramPalette = memo(({ items = [] }) => {
   const [pendingNewWorkflow, setPendingNewWorkflow] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
+  const [templates, setTemplates] = useState([]);
 
   const { 
     nodes,
@@ -67,66 +68,93 @@ const DiagramPalette = memo(({ items = [] }) => {
   const groupedItems = useMemo(() => {
     if (!searchQuery) {
       // Group by category when no search
-      return Object.entries(NODE_CATEGORIES).map(([categoryId, category]) => ({
+      const groups = Object.entries(NODE_CATEGORIES).map(([categoryId, category]) => ({
+        id: categoryId,
         category: category.label,
         color: category.color,
         items: items.filter(item => {
           const nodeType = NODE_TYPES[item.type];
           return nodeType && nodeType.category === categoryId;
-        })
+        }).map(item => ({
+          ...item,
+          id: `${categoryId}-${item.type}`
+        }))
       }));
+
+      // Add templates as a separate category if we have any
+      if (templates.length > 0) {
+        groups.push({
+          id: 'templates',
+          category: 'Templates',
+          color: 'blue',
+          items: templates.map(template => ({
+            id: `template-${template.id}`,
+            type: template.type,
+            label: template.name,
+            description: template.description,
+            isTemplate: true,
+            templateData: template
+          }))
+        });
+      }
+
+      return groups;
     }
 
     // When searching, show flat list of filtered items
-    const query = searchQuery.toLowerCase();
-    const filteredItems = items.filter(item => 
-      item.label.toLowerCase().includes(query) || 
-      item.description.toLowerCase().includes(query)
+    const filteredItems = [
+      ...items.map(item => ({
+        ...item,
+        id: `search-${item.type}`
+      })),
+      ...templates.map(template => ({
+        id: `search-template-${template.id}`,
+        type: template.type,
+        label: template.name,
+        description: template.description,
+        isTemplate: true,
+        templateData: template
+      }))
+    ].filter(item => 
+      item.label.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      item.description.toLowerCase().includes(searchQuery.toLowerCase())
     );
-    
+
     return [{
+      id: 'search-results',
       category: 'Search Results',
       items: filteredItems
     }];
-  }, [items, searchQuery]);
+  }, [items, searchQuery, templates]);
 
   const handleDragStart = (event, item) => {
-    // Generate a unique ID for the new node
-    const nodeId = generateNodeId(item.type);
-    
-    const nodeData = {
-      id: nodeId,
-      type: item.type,
-      data: {
-        label: item.label,
-        description: item.description,
-        color: NODE_TYPES[item.type]?.color,
-
-        ...(item.type === 'http' && {
-          method: 'GET',
-          url: '',
-          headers: [],
-          params: []
-        }),
-        ...(item.type === 'format' && {
-          template: ''
-        }),
-        ...(item.type === 'fileop' && {
-          operation: 'read',
-          fileName: ''
-        }),
-        ...(item.type === 'parser' && {
-          parser: 'json',
-          mode: 'json',
-          template: 'data',
-        }),
-        ...(item.type === 'iterator' && {
-          outputList: []
-        })
-      }
-    };
-
-    event.dataTransfer.setData('application/diagram-node', JSON.stringify(nodeData));
+    if (item.isTemplate) {
+      // Handle template drag
+      const nodeData = {
+        id: generateNodeId(item.type),
+        type: item.type,
+        data: {
+          ...item.templateData.data,
+          label: item.label,
+          description: item.description
+        }
+      };
+      event.dataTransfer.setData('application/diagram-node', JSON.stringify(nodeData));
+    } else {
+      // Handle regular node drag (existing code)
+      const nodeId = generateNodeId(item.type);
+      const nodeData = {
+        id: nodeId,
+        type: item.type,
+        data: {
+          label: item.label,
+          description: item.description,
+          color: NODE_TYPES[item.type]?.color,
+          ...NODE_TYPES[item.type]?.defaultData
+        }
+      };
+      event.dataTransfer.setData('application/diagram-node', JSON.stringify(nodeData));
+    }
     event.dataTransfer.effectAllowed = 'move';
   };
 
@@ -266,6 +294,42 @@ const DiagramPalette = memo(({ items = [] }) => {
 
   const canExecute = nodes.length > 0;
 
+  useEffect(() => {
+    console.log('DiagramPalette mounted, loading templates...');
+    loadTemplates();
+
+    // Add listener for template saves
+    const handleTemplateSaved = () => {
+      console.log('Template saved event received, reloading templates...');
+      loadTemplates();
+    };
+
+    window.addEventListener('template-saved', handleTemplateSaved);
+    return () => window.removeEventListener('template-saved', handleTemplateSaved);
+  }, []);
+
+  const loadTemplates = async () => {
+    try {
+      const result = await window.api.storage.listNodeTemplates();
+      
+      if (result.success && Array.isArray(result.data)) {
+
+        setTemplates(result.data);
+      } else {
+        console.error('Invalid template data:', result);
+        setTemplates([]);
+      }
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      setTemplates([]);
+    }
+  };
+
+  // Add this to verify templates state updates
+  useEffect(() => {
+    console.log('Templates state updated:', templates);
+  }, [templates]);
+
   return (
     <>
       <div className={cn(
@@ -309,7 +373,7 @@ const DiagramPalette = memo(({ items = [] }) => {
             color="blue"
             fullWidth
             onClick={redoHistory}
-            disabled={isExecuting || !redoStack.length}
+            disabled={isExecuting || !redoStack?.length}
           >
             <Redo2 className="w-4 h-4" />
           </Button>
@@ -398,7 +462,7 @@ const DiagramPalette = memo(({ items = [] }) => {
           {expanded && (
             <div className="space-y-4 p-2">
             {groupedItems.map(group => (
-              <div key={group.category} className="space-y-2">
+              <div key={group.id} className="space-y-2">
                 {/* Category Header */}
                 <div className={cn(
                   "text-xs font-bold dark:font-light font-mono px-2",
@@ -420,7 +484,7 @@ const DiagramPalette = memo(({ items = [] }) => {
                     
                     return (
                       <div
-                        key={item.type}
+                        key={item.id}
                         draggable
                         onDragStart={(e) => handleDragStart(e, item)}
                         className={cn(

@@ -20,6 +20,17 @@ const ensureFlowsDir = async () => {
   }
 }
 
+// Add to existing storageHandlers object
+const nodeTemplatesDir = path.join(app.getPath('userData'), 'nodeTemplates');
+
+const ensureNodeTemplatesDir = async () => {
+  try {
+    await fs.mkdir(nodeTemplatesDir, { recursive: true });
+  } catch (error) {
+    console.error('Failed to create node templates directory:', error);
+  }
+};
+
 export const storageHandlers = {
   'storage.save-flow': async (event, flowData) => {
     try {
@@ -271,6 +282,151 @@ export const storageHandlers = {
       console.error('Failed to delete connection:', error);
       return { success: false, error: error.message };
     }
+  },
+
+  'storage.save-node-template': async (event, template) => {
+    try {
+      await ensureNodeTemplatesDir();
+      
+      const templateWithId = {
+        ...template,
+        id: template.id || Date.now().toString(),
+        timestamp: Date.now()
+      };
+      
+      const filePath = path.join(nodeTemplatesDir, `${templateWithId.id}.json`);
+      await fs.writeFile(filePath, JSON.stringify(templateWithId, null, 2));
+      
+      return { success: true, templateId: templateWithId.id };
+    } catch (error) {
+      console.error('Failed to save node template:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  'storage.list-node-templates': async () => {
+    try {
+      await ensureNodeTemplatesDir();
+      
+      const files = await fs.readdir(nodeTemplatesDir);
+      console.log('Template files found:', files);
+      
+      const templates = [];
+      
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const filePath = path.join(nodeTemplatesDir, file);
+          console.log('Reading template file:', filePath);
+          const content = await fs.readFile(filePath, 'utf-8');
+          console.log('Template content:', content);
+          templates.push(JSON.parse(content));
+        }
+      }
+      
+      const sortedTemplates = templates.sort((a, b) => b.timestamp - a.timestamp);
+      console.log('Returning templates:', sortedTemplates);
+      
+      return { 
+        success: true, 
+        data: sortedTemplates
+      };
+    } catch (error) {
+      console.error('Failed to list node templates:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  'storage.delete-node-template': async (event, templateId) => {
+    try {
+      const filePath = path.join(nodeTemplatesDir, `${templateId}.json`);
+      await fs.unlink(filePath);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to delete node template:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  'storage.save-integration': async (_, data) => {
+    try {
+      const { id, config } = data;
+      
+      // Get or create integration record
+      let integration = await database.models.Integration.findOne({
+        where: { id }
+      });
+
+      if (integration) {
+        integration.config = config; // Config is already encrypted from renderer
+        await integration.save();
+      } else {
+        integration = await database.models.Integration.create({
+          id,
+          config // Config is already encrypted from renderer
+        });
+      }
+
+      return {
+        success: true,
+        data: {
+          id: integration.id,
+          createdAt: integration.createdAt,
+          updatedAt: integration.updatedAt
+        }
+      };
+    } catch (error) {
+      console.error('Failed to save integration:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  },
+
+  'storage.get-integration': async (_, id) => {
+    try {
+      const integration = await database.models.Integration.findOne({
+        where: { id }
+      });
+
+      return {
+        success: true,
+        data: integration
+      };
+    } catch (error) {
+      console.error('Failed to get integration:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  },
+
+  'storage.list-integrations': async () => {
+    try {
+      const integrations = await database.models.Integration.findAll();
+
+      return {
+        success: true,
+        data: integrations
+      };
+    } catch (error) {
+      console.error('Failed to list integrations:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  },
+
+  'storage.delete-integration': async (_, id) => {
+    try {
+      await database.deleteIntegration(id);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to delete integration:', error);
+      return { success: false, error: error.message };
+    }
   }
 }
 
@@ -309,4 +465,85 @@ export function registerStorageHandlers(ipcMain, db) {
       throw error;
     }
   });
-} 
+
+  ipcMain.handle('storage.save-integration', async (_, data) => {
+    try {
+      const { id, config } = data;
+      
+      // Get or create integration record
+      let integration = await db.models.Integration.findOne({
+        where: { id }
+      });
+
+      if (integration) {
+        integration.config = config; // Config is already encrypted from renderer
+        await integration.save();
+      } else {
+        integration = await db.models.Integration.create({
+          id,
+          config // Config is already encrypted from renderer
+        });
+      }
+
+      return {
+        success: true,
+        data: {
+          id: integration.id,
+          createdAt: integration.createdAt,
+          updatedAt: integration.updatedAt
+        }
+      };
+    } catch (error) {
+      console.error('Failed to save integration:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+
+  ipcMain.handle('storage.get-integration', async (_, id) => {
+    try {
+      const integration = await db.models.Integration.findOne({
+        where: { id }
+      });
+
+      return {
+        success: true,
+        data: integration
+      };
+    } catch (error) {
+      console.error('Failed to get integration:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+
+  ipcMain.handle('storage.list-integrations', async () => {
+    try {
+      const integrations = await db.models.Integration.findAll();
+
+      return {
+        success: true,
+        data: integrations
+      };
+    } catch (error) {
+      console.error('Failed to list integrations:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+}
+
+// Add initialization function
+export async function initializeStorage() {
+  await ensureNodeTemplatesDir();
+}
+
+module.exports = {
+  registerStorageHandlers
+}; 

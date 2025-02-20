@@ -17,12 +17,6 @@ const api = {
   },
   storage: {
     testConnection: async (config) => {
-      // Log the config before sending
-      console.log('Preload: sending test config:', {
-        ...config,
-        password: config?.password ? '[REDACTED]' : undefined
-      });
-
       // Ensure we're sending a plain object
       const plainConfig = {
         type: config.type,
@@ -38,14 +32,8 @@ const api = {
             })
       };
 
-      console.log('Preload: sending plain config:', {
-        ...plainConfig,
-        password: plainConfig?.password ? '[REDACTED]' : undefined
-      });
-
       const result = await ipcRenderer.invoke('storage.test-connection', plainConfig);
       
-      console.log('Preload: received result:', result);
       return result;
     },
     saveConnection: (data) => ipcRenderer.invoke('storage.save-connection', data),
@@ -55,7 +43,22 @@ const api = {
     openFlow: (id) => ipcRenderer.invoke('storage.open-flow', id),
     saveEnv: (data) => ipcRenderer.invoke('storage.save-env', data),
     openEnv: (id) => ipcRenderer.invoke('storage.open-env', id),
-    listEnv: () => ipcRenderer.invoke('storage.list-env')
+    listEnv: () => ipcRenderer.invoke('storage.list-env'),
+    saveIntegration: (data) => ipcRenderer.invoke('storage.save-integration', data),
+    getIntegration: (id) => ipcRenderer.invoke('storage.get-integration', id),
+    listIntegrations: () => ipcRenderer.invoke('storage.list-integrations'),
+    saveNodeTemplate: async (template) => {
+      console.log('Preload: Saving node template:', template);
+      return await ipcRenderer.invoke('storage.save-node-template', template);
+    },
+    listNodeTemplates: async () => {
+      const result = await ipcRenderer.invoke('storage.list-node-templates');
+      return result;
+    },
+    deleteNodeTemplate: async (templateId) => {
+      console.log('Preload: Deleting node template:', templateId);
+      return await ipcRenderer.invoke('storage.delete-node-template', templateId);
+    }
   },
   dialog: {
     openFile: (options) => ipcRenderer.invoke('dialog.open-file', options),
@@ -69,6 +72,9 @@ const api = {
     database: {
       query: (connectionId, query, parameters) => 
         ipcRenderer.invoke('nodes.database.query', connectionId, query, parameters)
+    },
+    http: {
+      request: (config) => ipcRenderer.invoke('nodes.http.request', config)
     }
   }
 }
@@ -88,23 +94,52 @@ if (process.contextIsolated) {
   window.api = api
 }
 
-// Expose protected methods that allow the renderer process to use
-// the ipcRenderer without exposing the entire object
+// Use a more unique namespace to avoid conflicts
 contextBridge.exposeInMainWorld(
-  'api', {
-    invoke: (channel, data) => {
-      // whitelist channels
-      const validChannels = [
-        'storage.save-flow',
-        'storage.open-flow',
-        'storage.list-flows',
-        'storage.delete-flow',
-        // ... other valid channels ...
-      ];
-      if (validChannels.includes(channel)) {
-        return ipcRenderer.invoke(channel, data);
-      }
-    },
-    // ... other methods ...
+  'electronAPI',
+  {
+    // Command operations
+    executeCommand: (command, options) => 
+      ipcRenderer.invoke('nodes.command.execute', command, options),
+
+    // File operations
+    saveFile: (path, content) => 
+      ipcRenderer.invoke('nodes.file.save', path, content),
+    openFile: (path) => 
+      ipcRenderer.invoke('nodes.file.open', path),
+
+    // HTTP operations
+    httpRequest: (config) => 
+      ipcRenderer.invoke('nodes.http.request', config),
+
+    // Flow storage operations
+    saveFlow: (flowData) => 
+      ipcRenderer.invoke('storage.save-flow', flowData),
+    openFlow: (flowId) => 
+      ipcRenderer.invoke('storage.open-flow', flowId),
+    listFlows: () => 
+      ipcRenderer.invoke('storage.list-flows'),
+    deleteFlow: (flowId) => 
+      ipcRenderer.invoke('storage.delete-flow', flowId),
+
+    // Connection operations
+    saveConnection: (connectionData) => 
+      ipcRenderer.invoke('storage.save-connection', connectionData),
+    listConnections: () => 
+      ipcRenderer.invoke('storage.list-connections'),
+    deleteConnection: (connectionId) => 
+      ipcRenderer.invoke('storage.delete-connection', connectionId),
+    testConnection: (connectionData) => 
+      ipcRenderer.invoke('storage.test-connection', connectionData),
+
+    // Integration operations
+    saveIntegration: (data) => 
+      ipcRenderer.invoke('storage.save-integration', data),
+    getIntegration: (id) => 
+      ipcRenderer.invoke('storage.get-integration', id),
+    listIntegrations: () => 
+      ipcRenderer.invoke('storage.list-integrations'),
+    deleteIntegration: (id) => 
+      ipcRenderer.invoke('storage.delete-integration', id)
   }
 );

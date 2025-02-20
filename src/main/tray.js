@@ -10,8 +10,6 @@ export function createTray(mainWindow) {
       ? path.join(process.resourcesPath, 'assets', 'tray.png')
       : path.join(app.getAppPath(), 'src', 'renderer', 'assets', 'tray.png');
 
-    console.log('Loading tray icon from:', iconPath); // Debug log
-
     // Create tray with icon
     tray = new Tray(iconPath);
 

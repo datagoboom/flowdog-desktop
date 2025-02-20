@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { Plus, X, Info } from 'lucide-react';
 import { useDiagram } from '../../../../contexts/DiagramContext';
 import Select from '../../../common/Select';
@@ -6,12 +6,31 @@ import Input from '../../../common/Input';
 import Button from '../../../common/Button';
 import { Body2 } from '../../../common/Typography';
 
-const OPERATORS = [
-  { value: '==', label: 'equals' },
-  { value: '>=', label: 'greater than or equal to' },
-  { value: '<=', label: 'less than or equal to' },
-  { value: 'contains', label: 'contains' }
-];
+// Import operators from the executor
+const OPERATORS = {
+  '===': { label: 'equals (strict)', requiresValue: true },
+  '==': { label: 'equals', requiresValue: true },
+  '!==': { label: 'not equals (strict)', requiresValue: true },
+  '!=': { label: 'not equals', requiresValue: true },
+  '>': { label: 'greater than', requiresValue: true, numeric: true },
+  '>=': { label: 'greater than or equal', requiresValue: true, numeric: true },
+  '<': { label: 'less than', requiresValue: true, numeric: true },
+  '<=': { label: 'less than or equal', requiresValue: true, numeric: true },
+  'contains': { label: 'contains', requiresValue: true, string: true },
+  '!contains': { label: 'does not contain', requiresValue: true, string: true },
+  'startsWith': { label: 'starts with', requiresValue: true, string: true },
+  'endsWith': { label: 'ends with', requiresValue: true, string: true },
+  'matches': { label: 'matches regex', requiresValue: true, string: true },
+  'isNull': { label: 'is null', requiresValue: false },
+  'notNull': { label: 'is not null', requiresValue: false },
+  'isEmpty': { label: 'is empty', requiresValue: false },
+  'notEmpty': { label: 'is not empty', requiresValue: false }
+};
+
+const OPERATOR_OPTIONS = Object.entries(OPERATORS).map(([value, config]) => ({
+  value,
+  label: config.label
+}));
 
 const ConditionalNodeConfig = memo(({ node }) => {
   const { updateNodeData, lastInput } = useDiagram();
@@ -23,62 +42,35 @@ const ConditionalNodeConfig = memo(({ node }) => {
     }
   }, [lastInput, node.id]);
 
-  const inputData = useMemo(() => lastInput?.[node.id], [lastInput, node.id]);
-
-  const handleInputChange = useCallback((field, value) => {
-    updateNodeData(node.id, field, value);
-  }, [node.id, updateNodeData]);
-
   const handleConditionChange = useCallback((index, field, value) => {
     const conditions = [...(node.data.conditions || [])];
     conditions[index] = {
       ...conditions[index],
       [field]: value
     };
-    handleInputChange('conditions', conditions);
-  }, [node.data.conditions, handleInputChange]);
+
+    // Clear value if operator doesn't require it
+    if (field === 'operator' && !OPERATORS[value]?.requiresValue) {
+      conditions[index].value = '';
+    }
+
+    updateNodeData(node.id, 'conditions', conditions);
+  }, [node.id, node.data.conditions, updateNodeData]);
 
   const handleAddCondition = useCallback(() => {
     const conditions = [...(node.data.conditions || [])];
-    if (conditions.length < 3) {
-      conditions.push({
-        field: '',
-        operator: '==',
-        value: ''
-      });
-      handleInputChange('conditions', conditions);
-    }
-  }, [node.data.conditions, handleInputChange]);
+    conditions.push({
+      field: '',
+      operator: '==',
+      value: ''
+    });
+    updateNodeData(node.id, 'conditions', conditions);
+  }, [node.id, node.data.conditions, updateNodeData]);
 
   const handleRemoveCondition = useCallback((index) => {
     const conditions = [...(node.data.conditions || [])].filter((_, i) => i !== index);
-    handleInputChange('conditions', conditions);
-  }, [node.data.conditions, handleInputChange]);
-
-  const getConditionLabel = (index) => {
-    if (index === 0) return 'If';
-    return 'Else if';
-  };
-
-  // Template variables help section
-  const templateHelp = (
-    <div className="p-4 mt-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-      <div className="flex items-start gap-2">
-        <Info size={16} className="text-slate-500 mt-0.5" />
-        <div className="text-sm space-y-1">
-          <p className="font-medium text-slate-500">Template Variables</p>
-          <p className="text-slate-500">
-            You can use template variables in both field and value inputs:
-          </p>
-          <ul className="list-disc list-inside text-slate-500">
-            <li><code>{'{{data.field}}'}</code> - Access data from previous nodes</li>
-            <li><code>{'{{response.status}}'}</code> - HTTP response status</li>
-            <li><code>{'{{response.body.field}}'}</code> - Response body fields</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  );
+    updateNodeData(node.id, 'conditions', conditions);
+  }, [node.id, node.data.conditions, updateNodeData]);
 
   return (
     <div className="space-y-6">
@@ -88,7 +80,7 @@ const ConditionalNodeConfig = memo(({ node }) => {
           <div key={index} className="space-y-2 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
             <div className="flex items-center justify-between">
               <Body2 className="font-medium">
-                {getConditionLabel(index)}
+                {index === 0 ? 'If' : 'Or if'}
               </Body2>
               <Button
                 variant="text"
@@ -100,69 +92,85 @@ const ConditionalNodeConfig = memo(({ node }) => {
               </Button>
             </div>
 
-            <div className="flex gap-2">
+            <div className="space-y-2">
               <Input
                 value={condition.field || ''}
                 onChange={(e) => handleConditionChange(index, 'field', e.target.value)}
-                placeholder="{{data.field}}"
+                placeholder="Field (e.g., data.status)"
                 variant="filled"
-                className="flex-1"
+                fullWidth
               />
+              
               <Select
                 value={condition.operator || '=='}
                 onChange={(value) => handleConditionChange(index, 'operator', value)}
-                options={OPERATORS}
-                className="w-48"
+                options={OPERATOR_OPTIONS}
+                fullWidth
               />
-              <Input
-                value={condition.value || ''}
-                onChange={(e) => handleConditionChange(index, 'value', e.target.value)}
-                placeholder="{{data.value}}"
-                variant="filled"
-                className="flex-1"
-              />
+              
+              {OPERATORS[condition.operator]?.requiresValue && (
+                <Input
+                  value={condition.value || ''}
+                  onChange={(e) => handleConditionChange(index, 'value', e.target.value)}
+                  placeholder="Value"
+                  variant="filled"
+                  fullWidth
+                />
+              )}
             </div>
           </div>
         ))}
 
-        {/* Else Section - Only shows if there's at least one condition */}
-        {(node.data.conditions || []).length > 0 && (
-          <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-            <Body2 className="font-medium text-slate-500">
-              Else (bottom output)
-            </Body2>
-            <p className="text-sm text-slate-500 mt-1">
-              This path will be taken if no conditions match
-            </p>
+        {/* Output Paths Description */}
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-2">
+          <div className="flex items-start gap-2">
+            <div className="w-3 h-3 rounded-full bg-green-500 mt-1" />
+            <div>
+              <Body2 className="font-medium">True Path (Top)</Body2>
+              <p className="text-sm text-slate-500">Taken if any condition is true</p>
+            </div>
           </div>
-        )}
+          <div className="flex items-start gap-2">
+            <div className="w-3 h-3 rounded-full bg-red-500 mt-1" />
+            <div>
+              <Body2 className="font-medium">False Path (Bottom)</Body2>
+              <p className="text-sm text-slate-500">Taken if all conditions are false</p>
+            </div>
+          </div>
+        </div>
 
         {/* Add Condition Button */}
-        {(node.data.conditions || []).length < 3 && (
-          <Button
-            variant="light"
-            color="purple"
-            size="sm"
-            startIcon={<Plus size={16} />}
-            onClick={handleAddCondition}
-            fullWidth
-          >
-            Add {(node.data.conditions || []).length === 0 ? 'If Condition' : 'Else If Condition'}
-          </Button>
-        )}
+        <Button
+          variant="light"
+          color="purple"
+          size="sm"
+          startIcon={<Plus size={16} />}
+          onClick={handleAddCondition}
+          fullWidth
+        >
+          Add Condition
+        </Button>
       </div>
 
-      {/* Help Text */}
-      {(node.data.conditions || []).length === 0 && (
-        <div className="text-sm text-slate-500 text-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-          Start by adding an "If" condition. Additional conditions will be evaluated in order.
+      {/* Template Help */}
+      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+        <div className="flex items-start gap-2">
+          <Info size={16} className="text-slate-500 mt-0.5" />
+          <div className="text-sm space-y-1">
+            <p className="font-medium text-slate-500">Available Data</p>
+            <p className="text-slate-500">
+              You can reference data from previous nodes using their IDs:
+            </p>
+            <ul className="list-disc list-inside text-slate-500">
+              <li><code>data.fieldName</code> - Access direct data</li>
+              <li><code>response.status</code> - HTTP status codes</li>
+              <li><code>response.data.field</code> - Response data</li>
+            </ul>
+          </div>
         </div>
-      )}
+      </div>
 
-      {/* Template Variables Help */}
-      {templateHelp}
-
-      {/* Last Input Section */}
+      {/* Last Input Preview */}
       {lastInputCache && (
         <div className="space-y-2">
           <Body2 className="font-medium">Last Input Data</Body2>
@@ -177,4 +185,4 @@ const ConditionalNodeConfig = memo(({ node }) => {
 
 ConditionalNodeConfig.displayName = 'ConditionalNodeConfig';
 
-export default ConditionalNodeConfig; 
+export default ConditionalNodeConfig;

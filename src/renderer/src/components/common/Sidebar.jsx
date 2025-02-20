@@ -8,6 +8,8 @@ import { ThemeToggle } from './ThemeToggle';
 import { LogOut } from 'lucide-react';
 import {ChevronLeft, ChevronRight} from 'lucide-react';
 import { Sun, Moon } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Sidebar = ({
   children,
@@ -23,14 +25,21 @@ const Sidebar = ({
   const { sidebarOpen, setSidebarOpen } = useDiagram();
   const [isOpen, setIsOpen] = useState(sidebarOpen);
   const { isDark, toggleTheme } = useTheme();
-
-
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   useEffect(() => {
     setSidebarOpen(isOpen);
   }, [isOpen]);
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
+  };
+
+  const handleLogout = () => {
+    console.log('Logging out...');
+    logout();
+    // TODO: redirect to login page
+    navigate('/login');
   };
 
   return (
@@ -96,10 +105,7 @@ const Sidebar = ({
           variant="text"
           size="sm"
           className="text-slate-300 hover:bg-slate-800"
-          onClick={() => {
-            // Add logout logic here
-            console.log('Logout clicked');
-          }}
+          onClick={handleLogout}
         />
         {isOpen && <ThemeToggle />}
       </div>

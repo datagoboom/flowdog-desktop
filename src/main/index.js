@@ -10,6 +10,11 @@ import { databaseHandlers } from './handlers/databaseHandlers'
 import database from './services/database'
 import { dialogHandlers } from './handlers/dialogHandlers'
 import { createTray, updateTrayMenu } from './tray'
+import axios from 'axios'
+import fs from 'fs/promises'
+import path from 'path'
+import { initializeStorage } from './handlers/storageHandlers'
+import { authHandlers } from './handlers/authHandlers'
 
 const execAsync = promisify(exec)
 
@@ -61,6 +66,9 @@ function createWindow() {
 
   // Create tray icon
   tray = createTray(mainWindow)
+
+  // Register IPC handlers
+  storageHandlers.registerHandlers(ipcMain)
 }
 
 function registerHandlers() {
@@ -68,7 +76,36 @@ function registerHandlers() {
   Object.entries(storageHandlers).forEach(([channel, handler]) => {
     ipcMain.handle(channel, handler)
   })
+
+  // Register auth handlers
+  Object.entries(authHandlers).forEach(([channel, handler]) => {
+    ipcMain.handle(channel, handler)
+  })
 }
+
+// Add HTTP request handler
+ipcMain.handle('nodes.http.request', async (event, config) => {
+  try {
+    const response = await axios(config);
+    return {
+      success: true,
+      data: {
+        status: response.status,
+        headers: response.headers,
+        data: response.data
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      }
+    };
+  }
+});
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -84,7 +121,8 @@ app.whenReady().then(async () => {
     return
   }
 
-  // Register all handlers
+  // Initialize storage and register handlers
+  await initializeStorage()
   registerHandlers()
 
   // Set app user model id for windows

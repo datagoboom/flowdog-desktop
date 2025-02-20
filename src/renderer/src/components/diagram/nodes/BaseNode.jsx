@@ -22,34 +22,24 @@ const BaseNode = memo(({
 }) => {
   const { isDark } = useTheme();
   const { executingNodeIds, nodeSequence, lastOutput } = useDiagram();
-  const nodeType = NODE_TYPES[type];
+  const nodeType = NODE_TYPES[type] || {};
   const Icon = nodeType?.icon;
 
-  // Check if we should show progress
-  const showProgress = data?.progress?.percentage !== undefined;
+  // Check if we should show progress with null safety
+  const showProgress = lastOutput?.data?.progress?.percentage !== undefined && lastOutput?.nodeId === id;
   const [localProgress, setLocalProgress] = useState(0);
   const [localSuccess, setLocalSuccess] = useState(false);
   const [color, setColor] = useState('slate');
 
-  const handleFinishProgress = (progress) => {
-    setLocalProgress(progress);
-    if (progress === 100) {
-      setTimeout(() => {
-        setLocalProgress(0);
-      }, 1000);
-    }
-  }
 
   useEffect(() => {
-    if (data.progress?.percentage === 100) {
-      handleFinishProgress(data.progress.percentage);
-    }
-  }, [data.progress?.percentage]);
-
-  useEffect(() => {
-    if (lastOutput?.[id]?.data?.success) {
-      console.log(`${id} success`);
-      setLocalSuccess(true);
+    if (lastOutput && lastOutput.data?.progress?.percentage && lastOutput.nodeId === id) {
+      setLocalProgress(lastOutput.data?.progress?.percentage);
+      if(lastOutput.data?.progress?.percentage === 100) {
+        setTimeout(() => {
+          setLocalProgress(0);
+        }, 1000);
+      }
     }
   }, [lastOutput]);
 
@@ -57,9 +47,6 @@ const BaseNode = memo(({
     setColor(getNodeColor(type));
   }, [getNodeColor(type)]);
 
-  useEffect(() => {
-    console.log(data.testResults);
-  }, [data.testResults]);
   
   // variable holding the svg for the vertical lines
   const vertLines = <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" className="w-[80px] h-[80px]">
@@ -111,8 +98,6 @@ const BaseNode = memo(({
       >
         {localSuccess && <div className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full"></div>}
 
-        
-            
         <div className={cn(
           'h-full flex flex-row justify-center',
           'transition-all duration-200',
@@ -139,7 +124,7 @@ const BaseNode = memo(({
                   className={cn(
                     `text-white`,
                     selected && 'animate-spin-ease-in-out',
-                    data.testResults?.passed === false && 'text-red-500'
+                    data?.testResults?.passed === false && 'text-red-500'
                   )} 
                 />}
             </div>
@@ -158,7 +143,7 @@ const BaseNode = memo(({
             )}>
               {showProgress && (
                   <ProgressBar 
-                    progress={data.progress?.percentage == 100 ? localProgress : data.progress?.percentage} 
+                    progress={localProgress} 
                     className="w-full rounded-l-none"
                     color={color}
                   />

@@ -8,7 +8,7 @@ import {
 } from 'reactflow';
 import { findPreviousNodes } from '../utils/graphUtils';
 import { useLogger } from './LoggerContext';
-import { openDB } from 'idb';
+import { useApi } from './ApiContext';
 
 const STORAGE_KEY = 'workflow_data';
 
@@ -41,6 +41,10 @@ export const useDiagram = () => {
 };
 
 export const DiagramProvider = ({ children }) => {
+  // Get the httpRequest function from the correct path in the API
+  const api = useApi();
+  const httpRequest = api.nodes.http.request;  // Update this path based on your API structure
+
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [history, setHistory] = useState([]);
@@ -56,7 +60,7 @@ export const DiagramProvider = ({ children }) => {
   const [utilityDrawerOpen, setUtilityDrawerOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [autoOpenDrawer, setAutoOpenDrawer] = useState(true);
-  const [autoCloseDrawer, setAutoCloseDrawer] = useState(true);
+  const [autoCloseDrawer, setAutoCloseDrawer] = useState(false);
 
   // Change ref to state
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
@@ -98,11 +102,6 @@ export const DiagramProvider = ({ children }) => {
     }
   }, [nodes, edges, nodeCounter, nodeSequence, initialLoadComplete, storage]);
 
-  useEffect(() => {
-    // track lastInput changes
-    console.log('lastInput changed:', lastInput);
-  }, [lastInput]);
-  
   // Update environment variable and persist to localStorage
   const setEnvironmentVariable = useCallback((name, value) => {
     setEnvironment(prev => {
@@ -171,23 +170,6 @@ export const DiagramProvider = ({ children }) => {
       setEdges(JSON.parse(savedEdges));
     }
   }, []);
-
-  // Create a new executor instance when nodes, edges, or environment changes
-  useEffect(() => {
-    const executor = new FlowExecutor(
-      nodes,
-      edges,
-      addToHistory,
-      addLog,
-      setExecutingNodeIds,
-      updateNodeData,
-      setLastOutput,
-      setLastInput,
-      setEnvironmentVariable,
-      environment
-    );
-    setExecutor(executor);
-  }, [nodes, edges, environment]);
 
   useEffect(() => {
     if (initialLoadComplete) return;
@@ -258,8 +240,9 @@ export const DiagramProvider = ({ children }) => {
     
     switch (lastAction.type) {
       case 'nodeAdd':
+        console.log('undoing nodeAdd', lastAction);
         if (lastAction.node) {
-          setNodes(nodes => nodes.filter(n => n.id !== lastAction.node.id));
+          setNodes(nodes => nodes.filter(n => n.id !== lastAction.nodeId));
         }
         break;
       case 'nodeRemove':
@@ -348,7 +331,8 @@ export const DiagramProvider = ({ children }) => {
       databaseQuery: 'DBQ',
       format: 'FRMT',
       command: 'CMD',
-      rss: 'RSS'
+      rss: 'RSS',
+      counter: 'CNTR'
     };
 
     // Use exact type match instead of toLowerCase()
@@ -445,19 +429,34 @@ export const DiagramProvider = ({ children }) => {
         setLastOutput,
         setLastInput,
         setEnvironmentVariable,
-        environment
+        environment,
+        httpRequest
       );
       
       const result = await executor.execute(updateNodeSequence, incrementSequence);
       setIsExecuting(false);
       setExecutingNodeIds(new Set());
+
       
     } catch (error) {
       console.error('Execution failed:', error);
       setIsExecuting(false);
       setExecutingNodeIds(new Set());
     }
-  }, [nodes, edges, addToHistory, addLog, updateNodeSequence, incrementSequence, updateNodeData, setLastOutput, setLastInput, setEnvironmentVariable, environment]);
+  }, [
+    nodes,
+    edges,
+    addToHistory,
+    addLog,
+    updateNodeSequence,
+    incrementSequence,
+    updateNodeData,
+    setLastOutput,
+    setLastInput,
+    setEnvironmentVariable,
+    environment,
+    httpRequest
+  ]);
 
   const pauseExecution = useCallback(() => {
     setIsExecuting(false);
@@ -471,17 +470,23 @@ export const DiagramProvider = ({ children }) => {
 
   // Handle node changes from React Flow
   const onNodesChange = useCallback((changes) => {
-    setNodes((nds) => applyNodeChanges(changes, nds));
+    setNodes((nds) => applyNodeChanges(changes, nds))
     
     changes.forEach(change => {
-      if (change.type === 'add' && change.item?.position) {
-        addToHistory({
-          type: 'nodeAdd',
-          node: change.item,
-          timestamp: Date.now()
-        });
+      let node = null;
+      console.log(change.type);
+      if (change.type === 'dimensions') {
+        node = nodes.find(n => n.id === change.id);
+        if (node) { 
+          addToHistory({
+            type: 'nodeAdd',
+            nodeId: change.id,
+            node,
+            timestamp: Date.now()
+          });
+        }
       } else if (change.type === 'remove') {
-        const node = nodes.find(n => n.id === change.id);
+        node = nodes.find(n => n.id === change.id);
         if (node) {
           addToHistory({
             type: 'nodeRemove',
@@ -491,7 +496,7 @@ export const DiagramProvider = ({ children }) => {
           });
         }
       } else if (change.type === 'position') {
-        const node = nodes.find(n => n.id === change.id);
+        node = nodes.find(n => n.id === change.id);
         if (node?.position && change.position) {
           addToHistory({
             type: 'nodePosition',
@@ -575,7 +580,6 @@ export const DiagramProvider = ({ children }) => {
       return acc;
     }, {});
 
-    console.log('Input data for node', nodeId, ':', inputData);
     return inputData;
   }, [nodes, edges]);
 
@@ -613,6 +617,24 @@ export const DiagramProvider = ({ children }) => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [undoHistory, redoHistory]);
+
+  useEffect(() => {
+    const executor = new FlowExecutor(
+      nodes,
+      edges,
+      addToHistory,
+      addLog,
+      setExecutingNodeIds,
+      updateNodeData,
+      setLastOutput,
+      setLastInput,
+      setEnvironmentVariable,
+      environment,
+      httpRequest
+    );
+    setExecutor(executor);
+  }, [nodes, edges, environment, httpRequest, addToHistory, addLog, setExecutingNodeIds, updateNodeData, setLastOutput, setLastInput, setEnvironmentVariable]);
+
 
   const value = useMemo(() => ({
     nodes,

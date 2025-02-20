@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
-import { User, CreditCard, Database, Plug, ChevronRight, Bell, Moon, Sun, Globe } from 'lucide-react';
+import { User, CreditCard, Database, Plug, ChevronRight, Bell, Moon, Sun, Globe, CheckCircle } from 'lucide-react';
 import { Body1, Body2, Caption } from '../components/common/Typography';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Switch from '../components/common/Switch';
 import DatabaseConnectionForm from '../components/settings/DatabaseConnectionForm';
 import { useApi } from '../contexts/ApiContext';
+import { integrations, INTEGRATION_CATEGORIES } from '../constants/integrations';
+import Card from '../components/common/Card';
+import Modal from '../components/common/Modal';
+import { useAuth } from '../contexts/AuthContext';
+import IntegrationsSection from '../components/settings/IntegrationsSection';
 
 const SECTIONS = {
   USER: 'user',
@@ -22,7 +27,45 @@ const Settings = () => {
   const [plan] = useState('free');
   const [connections, setConnections] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [selectedIntegration, setSelectedIntegration] = useState(null);
+  const [configuredIntegrations, setConfiguredIntegrations] = useState({});
+  
   const api = useApi();
+  const { encrypt } = useAuth();
+
+  // Load configured integrations
+  useEffect(() => {
+    const loadIntegrations = async () => {
+      try {
+        const result = await api.storage.listIntegrations();
+        if (result.success) {
+          const configured = {};
+          result.data.forEach(integration => {
+            configured[integration.id] = integration.config;
+          });
+          setConfiguredIntegrations(configured);
+        }
+      } catch (error) {
+        console.error('Failed to load integrations:', error);
+      }
+    };
+
+    loadIntegrations();
+  }, [api]);
+
+  const handleSaveConfig = async (integrationId, config) => {
+    try {
+      const result = await api.storage.saveIntegration({ id: integrationId, config });
+      if (result.success) {
+        setConfiguredIntegrations(prev => ({
+          ...prev,
+          [integrationId]: config
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to save integration:', error);
+    }
+  };
 
   // Load connections when component mounts
   useEffect(() => {
@@ -94,28 +137,7 @@ const Settings = () => {
         );
 
       case SECTIONS.INTEGRATIONS:
-        return (
-          <div className="space-y-6">
-            <div>
-              <Body1 className="font-bold">Integrations</Body1>
-              <Caption className="text-slate-500">Connect your external services</Caption>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-200 dark:divide-slate-700">
-              {['GitHub', 'Slack', 'Google Drive'].map((integration) => (
-                <div key={integration} className="p-4 flex items-center justify-between">
-                  <div>
-                    <Body2 className="font-medium">{integration}</Body2>
-                    <Caption className="text-slate-500">
-                      {`Connect your ${integration} account`}
-                    </Caption>
-                  </div>
-                  <Button variant="light">Connect</Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
+        return <IntegrationsSection />;
 
       case SECTIONS.DATA_SOURCES:
         return (
@@ -229,10 +251,10 @@ const Settings = () => {
   };
 
   return (
-    <div className="flex h-full">
-      {/* Sidebar */}
-      <div className="w-64 border-r border-slate-200 dark:border-slate-700 p-4">
-        <div className="space-y-1">
+    <div className="h-screen flex overflow-hidden">
+      {/* Sidebar - fixed height, no scroll */}
+      <div className="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-700 overflow-y-auto">
+        <div className="p-4 space-y-1">
           {[
             { id: SECTIONS.USER, icon: User, label: 'User' },
             { id: SECTIONS.INTEGRATIONS, icon: Plug, label: 'Integrations' },
@@ -256,10 +278,14 @@ const Settings = () => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 p-6 overflow-auto">
-        {renderContent()}
-      </div>
+      {/* Main Content - scrollable */}
+      <main className="flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto">
+          <div className="min-w-[800px] w-[60vw] p-6 pb-20 mx-auto">
+            {renderContent()}
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

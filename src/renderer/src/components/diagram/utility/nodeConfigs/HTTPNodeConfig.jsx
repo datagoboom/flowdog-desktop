@@ -10,6 +10,7 @@ import { executeHttpAction } from '../../../../actions';
 import FileUpload from '../../../common/FileUpload';
 import JQParser from '../../../../utils/jq';
 import CodeEditor from '../../../common/CodeEditor';
+import { useApi } from '../../../../contexts/ApiContext';
 const jq = new JQParser();
 
 const HTTP_METHODS = [
@@ -143,10 +144,13 @@ const EnvironmentVariableRow = memo(({ variable, onUpdate, onDelete }) => {
 
 const HTTPNodeConfig = memo(({ node }) => {
   const { updateNodeData, lastInput, environment, setEnvironmentVariable } = useDiagram();
+  const api = useApi();
   const [testData, setTestData] = useState(null);
   const [activeField, setActiveField] = useState(null);
   const [cursorPosition, setCursorPosition] = useState(null);
   const [lastInputCache, setLastInputCache] = useState(null);
+
+  console.log('API context:', api);
 
   // Update lastInputCache whenever lastInput changes
   useEffect(() => {
@@ -157,8 +161,6 @@ const HTTPNodeConfig = memo(({ node }) => {
 
   // Get input data for this node
   const inputData = useMemo(() => lastInput?.[node.id], [lastInput, node.id]);
-
-  console.log('environment', environment);
 
   // Format URL with template values
   const formatUrl = useCallback((url, data) => {
@@ -317,19 +319,97 @@ const HTTPNodeConfig = memo(({ node }) => {
   };
 
   const handleTest = async () => {
-    setTestData(null); // Clear previous results
+    console.log('Starting test with API:', api);
+    setTestData(null);
     try {
-      const result = await executeHttpAction(node.data);
-      setTestData(result);
+      // Format URL with any template values using lastInputCache
+      const formattedUrl = formatUrl(node.data.url, lastInputCache);
+      
+      if (!api?.nodes?.http?.request) {
+        throw new Error('HTTP API not available');
+      }
+
+      // Prepare headers
+      const headers = (node.data.headers || []).reduce((acc, header) => ({
+        ...acc,
+        [header.key]: formatUrl(header.value, lastInputCache)
+      }), {});
+
+      // Prepare body based on content type
+      let body = node.data.body;
+      if (node.data.contentType === 'form') {
+        // Handle form data
+        try {
+          // Convert form string to URLSearchParams
+          const formData = new URLSearchParams();
+          const lines = body.split('\n');
+          lines.forEach(line => {
+            if (line.trim()) {
+              const [key, value] = line.split('=');
+              if (key && value) {
+                formData.append(key.trim(), value.trim());
+              }
+            }
+          });
+          body = formData.toString();
+        } catch (error) {
+          console.error('Error parsing form data:', error);
+          throw new Error(`Invalid form data: ${error.message}`);
+        }
+      } else if (node.data.contentType === 'json' && typeof body === 'string') {
+        try {
+          // Validate JSON
+          JSON.parse(body);
+        } catch (error) {
+          throw new Error(`Invalid JSON body: ${error.message}`);
+        }
+      }
+
+      console.log('Executing test request with data:', {
+        method: node.data.method,
+        url: formattedUrl,
+        headers,
+        body,
+        contentType: node.data.contentType
+      });
+      
+      const result = await api.nodes.http.request({
+        method: node.data.method,
+        url: formattedUrl,
+        headers,
+        data: body,
+        contentType: node.data.contentType
+      });
+
+      console.log('Test request result:', result);
+      
+      if (result.success) {
+        setTestData({
+          success: true,
+          response: {
+            status: result.data.status,
+            headers: result.data.headers,
+            data: result.data.data
+          },
+          output: result.data
+        });
+      } else {
+        throw new Error(result.error?.message || JSON.stringify(result.error) || 'Request failed');
+      }
     } catch (error) {
+      console.error('Test request failed:', error);
       setTestData({
         success: false,
-        error: { message: error.message }
+        error: {
+          message: error.message || 'Request failed',
+          details: error.response?.data 
+            ? JSON.stringify(error.response.data, null, 2)
+            : error.stack
+        }
       });
     }
   };
 
-  // Render test results
   const renderTestResults = () => {
     if (!testData) return null;
 
@@ -350,8 +430,13 @@ const HTTPNodeConfig = memo(({ node }) => {
 
         {/* Error Message */}
         {testData.error && (
-          <div className="p-4 bg-semantic-red/10 text-semantic-red rounded-md text-sm">
-            {testData.error.message}
+          <div className="p-4 bg-semantic-red/10 text-semantic-red rounded-md">
+            <div className="font-medium mb-2">{testData.error.message}</div>
+            {testData.error.details && (
+              <pre className="text-xs whitespace-pre-wrap overflow-auto">
+                {testData.error.details}
+              </pre>
+            )}
           </div>
         )}
 
@@ -366,30 +451,14 @@ const HTTPNodeConfig = memo(({ node }) => {
         )}
 
         {/* Response Data */}
-        {testData && (
+        {testData.response?.data && (
           <div className="space-y-2">
             <Body2 className="font-medium text-sm">Response Data</Body2>
             <pre className="text-xs p-3 bg-slate-50 dark:bg-slate-800/50 rounded-md overflow-auto max-h-96">
-              {typeof testData.response?.data === 'string' 
+              {typeof testData.response.data === 'string' 
                 ? testData.response.data 
-                : JSON.stringify(testData.response?.data, null, 2)}
+                : JSON.stringify(testData.response.data, null, 2)}
             </pre>
-
-            <Body2 className="font-medium text-sm">Full Output (sent to next node)</Body2>
-            <pre className="text-xs p-3 bg-slate-50 dark:bg-slate-800/50 rounded-md overflow-auto max-h-96">
-              {typeof testData === 'string' 
-                ? testData 
-                : JSON.stringify(testData, null, 2)}
-            </pre>
-
-            {/* Debug Info */}
-            {1 === 0 && (
-              <div className="mt-2 p-2 bg-slate-100 dark:bg-slate-800 rounded text-xs">
-                <div>Response Type: {typeof testData}</div>
-                <div>Has Response Data: {testData.response?.data ? 'Yes' : 'No'}</div>
-                <div>Status: {testData.response?.status}</div>
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -403,44 +472,6 @@ const HTTPNodeConfig = memo(({ node }) => {
       <div>Type: {node.type}</div>
       <div className="text-xs text-slate-400 mt-1">
         Last updated: {new Date().toLocaleTimeString()}
-      </div>
-    </div>
-  );
-
-  // Update template help section to show nested object example
-  const templateHelp = (
-    <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-md mb-4">
-      <div className="flex items-center gap-2 mb-2">
-        <Info size={16} className="text-semantic-blue" />
-        <Body2 className="font-medium">Template Variables</Body2>
-      </div>
-      <div className="text-sm space-y-2">
-        <p>Use <code className="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded">{'{{variableName}}'}</code> to insert values from input data.</p>
-        <p>For nested objects, use dot notation: <code className="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded">{'{{data.token}}'}</code></p>
-        <p>Examples:</p>
-        <ul className="list-disc list-inside space-y-1">
-          <li><code className="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded">Bearer {'{{token}}'}</code></li>
-          <li><code className="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded">Bearer {'{{data.token}}'}</code></li>
-          <li><code className="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded">{'{{user.id}}'}</code></li>
-        </ul>
-      </div>
-    </div>
-  );
-
-  // Add CORS warning banner at the top
-  const corsWarning = (
-    <div className="p-4 mb-4 bg-semantic-yellow/10 border border-semantic-yellow/20 rounded-md">
-      <div className="flex items-start gap-2">
-        <Info size={16} className="text-semantic-yellow mt-0.5" />
-        <div className="text-sm space-y-1">
-          <p className="font-medium text-semantic-yellow">CORS Warning</p>
-          <p>Some requests may fail due to CORS (Cross-Origin Resource Sharing) restrictions. To resolve this:</p>
-          <ul className="list-disc list-inside">
-            <li>Enable CORS on your API server</li>
-            <li>Use a CORS proxy service</li>
-            <li>Add appropriate CORS headers to your server response</li>
-          </ul>
-        </div>
       </div>
     </div>
   );
@@ -484,15 +515,6 @@ const HTTPNodeConfig = memo(({ node }) => {
         );
     }
   };
-
-  // Debug output for visibility
-  console.log('Render state:', {
-    activeField,
-    cursorPosition,
-    inputData,
-    showingSuggestions: Boolean(activeField && inputData)
-  });
-
   // Modified to include "Create New" option
   const envVarOptions = useMemo(() => {
     const existingVars = Object.keys(environment.variables || {}).map(key => ({

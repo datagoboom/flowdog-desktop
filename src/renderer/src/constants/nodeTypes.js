@@ -9,7 +9,8 @@ import {
   TestTube,
   Database,
   Terminal,
-  Rss
+  Rss,
+  Hash
 } from 'lucide-react';
 
 // First import all node configs
@@ -22,6 +23,10 @@ import IteratorNodeConfig from '../components/diagram/utility/nodeConfigs/Iterat
 import TestNodeConfig from '../components/diagram/utility/nodeConfigs/TestNodeConfig';
 import DatabaseQueryNodeConfig from '../components/diagram/utility/nodeConfigs/DatabaseQueryNodeConfig';
 import CommandNodeConfig from '../components/diagram/utility/nodeConfigs/CommandNodeConfig';
+import PromptNodeConfig from '../components/diagram/utility/nodeConfigs/PromptNodeConfig';
+import RSSNodeConfig from '../components/diagram/utility/nodeConfigs/RSSNodeConfig';
+import CounterNodeConfig from '../components/diagram/utility/nodeConfigs/CounterNodeConfig';
+
 // Then import all node components
 import HTTPNode from '../components/diagram/nodes/HTTPNode';
 import FormatNode from '../components/diagram/nodes/FormatNode';
@@ -30,12 +35,11 @@ import ParserNode from '../components/diagram/nodes/ParserNode';
 import ConditionalNode from '../components/diagram/nodes/ConditionalNode';
 import IteratorNode from '../components/diagram/nodes/IteratorNode';
 import PromptNode from '../components/diagram/nodes/PromptNode';
-import LoggerNode from '../components/diagram/nodes/LoggerNode';
 import TestNode from '../components/diagram/nodes/TestNode';
 import DatabaseQueryNode from '../components/diagram/nodes/DatabaseQueryNode';
 import CommandNode from '../components/diagram/nodes/CommandNode';
 import RSSNode from '../components/diagram/nodes/RSSNode';
-import RSSNodeConfig from '../components/diagram/utility/nodeConfigs/RSSNodeConfig';
+import CounterNode from '../components/diagram/nodes/CounterNode';
 
 export const NODE_CATEGORIES = {
   input: {
@@ -174,6 +178,12 @@ export const NODE_TYPES = {
     category: 'ai',
     icon: MessageSquare,
     component: PromptNode,
+    config: PromptNodeConfig,
+    defaultData: {
+      name: 'Prompt',
+      prompt: '',
+      integration: 'anthropic',
+    },
   },
   databaseQuery: {
     type: 'databaseQuery',
@@ -218,6 +228,20 @@ export const NODE_TYPES = {
       maxItems: 10,
       sortBy: 'published',
       sortDirection: 'desc'
+    },
+  },
+  counter: {
+    type: 'counter',
+    label: 'Counter',
+    description: 'Count the number of times input is received',
+    category: 'utility',
+    icon: Hash,
+    component: CounterNode,
+    config: CounterNodeConfig,
+    defaultData: {
+      name: 'Counter',
+      incrementor: 0,
+      limit: 0
     },
   },
 };

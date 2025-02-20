@@ -151,8 +151,8 @@ Button.displayName = 'Button';
 
 Button.propTypes = {
   children: PropTypes.node.isRequired,
-  variant: PropTypes.oneOf(['filled', 'light', 'outlined', 'glass', 'text']),
-  color: PropTypes.oneOf(['blue', 'green', 'red', 'purple', 'orange']),
+  variant: PropTypes.oneOf(['filled', 'light', 'outlined', 'glass', 'text', 'attached']),
+  color: PropTypes.oneOf(['blue', 'green', 'red', 'purple', 'orange', 'white', 'yellow']),
   size: PropTypes.oneOf(['xs', 'sm', 'md', 'lg', 'xl']),
   fullWidth: PropTypes.bool,
   disabled: PropTypes.bool,

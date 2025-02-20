@@ -4,10 +4,11 @@ import JQParser from '../../utils/jq';
 const jq = new JQParser();
 
 export default class HttpNode {
-  constructor(getEnvVar, setEnvironmentVariable, localEnvironment) {
+  constructor(getEnvVar, setEnvironmentVariable, localEnvironment, httpRequest) {
     this.getEnvVar = getEnvVar;
     this.setEnvironmentVariable = setEnvironmentVariable;
     this.localEnvironment = localEnvironment || { variables: {} };
+    this.httpRequest = httpRequest;
   }
 
   // Helper function for evaluating templates with environment variables
@@ -99,15 +100,10 @@ export default class HttpNode {
       const searchParams = new URLSearchParams(templatedParams);
       const fullUrl = `${templatedUrl}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
 
-      console.log('Making request with:', {
+      // Prepare request config for API call
+      const requestConfig = {
+        method,
         url: fullUrl,
-        method,
-        headers: headerObj,
-        body
-      });
-
-      const fetchOptions = {
-        method,
         headers: {
           'Content-Type': 'application/json',
           ...headerObj
@@ -118,33 +114,26 @@ export default class HttpNode {
       if (['POST', 'PUT', 'PATCH'].includes(method) && body) {
         try {
           const templatedBody = this.evaluateEnvTemplate(body, context);
-          fetchOptions.body = templatedBody;
+          requestConfig.data = templatedBody;
         } catch (error) {
           console.error('Body templating failed:', error);
-          fetchOptions.body = body;
+          requestConfig.data = body;
         }
       }
 
-      const response = await fetch(fullUrl, fetchOptions);
-      const responseData = await response.text();
+      console.log('Making request with:', requestConfig);
+
+      // Use the instance's httpRequest method
+      const response = await this.httpRequest(requestConfig);
       
-      // Try to parse as JSON, handle empty responses
-      let parsedData;
-      try {
-        if (responseData && responseData.trim()) {
-          parsedData = JSON.parse(responseData);
-        } else {
-          parsedData = null;
-        }
-      } catch (e) {
-        console.error('JSON parsing failed:', e);
-        parsedData = responseData;
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Request failed');
       }
 
       const result = {
-        status: response.status,
-        headers: Object.fromEntries(response.headers.entries()),
-        data: parsedData
+        status: response.data.status,
+        headers: response.data.headers,
+        data: response.data.data
       };
 
       const formattedResult = formatter.standardResponse(true, result);
@@ -196,4 +185,4 @@ export default class HttpNode {
       return formatter.errorResponse(error.message);
     }
   }
-} 
+}

@@ -1,16 +1,12 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import PropTypes from 'prop-types';
-import { useTheme } from '../../contexts/ThemeContext';
-import Navbar from '../common/Navbar';
 import Sidebar from '../common/Sidebar';
 import Box from '../common/Box';
-import IconButton from '../common/IconButton';
 import SidebarItem from '../common/SidebarItem';
 import {
   Home,
   Waves,
-  Settings
+  Settings,
 } from 'lucide-react';
 
 const Layout = () => {
@@ -35,6 +31,7 @@ const Layout = () => {
       path: '/settings',
     },
   ];
+
 
   return (
     <div className="relative flex h-[calc(100vh-40px)] overflow-hidden text-dark-text bg-white dark:bg-slate-900">

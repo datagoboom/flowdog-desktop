@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useCallback } from 'react';
 
-const ApiContext = createContext(null);
+const ApiContext = createContext();
 
 export function ApiProvider({ children }) {
   // Nodes API
@@ -16,9 +16,14 @@ export function ApiProvider({ children }) {
     return await window.api.invoke('nodes.file.open', path);
   }, []);
 
+  // Add httpRequest function
+  const httpRequest = useCallback(async (config) => {
+    return await window.api.invoke('nodes.http.request', config);
+  }, []);
+
   // Storage API for flows
   const saveFlow = useCallback(async (flowData) => {
-    console.log('ApiContext saveFlow called with:', flowData); // Debug log
+    console.log('ApiContext saveFlow called with:', flowData);
     return await window.api.invoke('storage.save-flow', flowData);
   }, []);
 
@@ -58,6 +63,23 @@ export function ApiProvider({ children }) {
     return await window.api.invoke('storage.test-connection', connectionData);
   }, []);
 
+  // Integration API
+  const saveIntegration = useCallback(async (data) => {
+    return await window.api.invoke('storage.save-integration', data);
+  }, []);   
+
+  const getIntegration = useCallback(async (id) => {
+    return await window.api.invoke('storage.get-integration', id);
+  }, []);
+
+  const listIntegrations = useCallback(async () => {
+    return await window.api.invoke('storage.list-integrations');
+  }, []);
+
+  const deleteIntegration = useCallback(async (id) => {
+    return await window.api.invoke('storage.delete-integration', id);
+  }, []);
+
   const api = {
     nodes: {
       command: {
@@ -66,6 +88,9 @@ export function ApiProvider({ children }) {
       file: {
         save: saveFile,
         open: openFile
+      },
+      http: {
+        request: httpRequest
       }
     },
     storage: {
@@ -76,7 +101,29 @@ export function ApiProvider({ children }) {
       saveConnection,
       listConnections,
       deleteConnection,
-      testConnection
+      testConnection,
+      saveIntegration,
+      getIntegration,
+      listIntegrations,
+      deleteIntegration
+    },
+    auth: {
+      checkSetup: () => window.api.invoke('auth.check-setup'),
+      
+      setup: ({ username, password }) => 
+        window.api.invoke('auth.setup', { username, password }),
+      
+      login: ({ username, password }) => 
+        window.api.invoke('auth.login', { username, password }),
+      
+      updateUser: (userData) => 
+        window.api.invoke('auth.update-user', userData)
+    },
+    http: {
+      request: async (requestData) => {
+        console.log('Making HTTP request through API context:', requestData);
+        return await window.api.http.request(requestData);
+      }
     }
   };
 

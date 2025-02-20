@@ -5,40 +5,47 @@ import BaseNode from './BaseNode';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { cn } from '../../../utils';
 
-const FileOpNode = memo(({ data, isConnectable, selected, id }) => {
+const FileOpNode = memo(({ data, selected, id }) => {
   const { isDark } = useTheme();
 
   return (
+    <>
     <BaseNode
       id={id}
       type="fileop"
       icon={FileText}
       color="orange"
-      isConnectable={isConnectable}
+      isConnectable={true}
       selected={selected}
       data={data}
-      handles={[
-        {
-          type: "target",
-          position: Position.Left,
-          id: `${id}-target`,
-          className: cn(
-            "w-3 h-3",
-            isDark ? "bg-gray-700" : "bg-gray-200"
-          )
-        },
-        {
-          type: "source",
-          position: Position.Right,
-          id: `${id}-source`,
-          className: cn(
-            "w-3 h-3",
-            isDark ? "bg-gray-700" : "bg-gray-200"
-          )
-        }
-      ]}
     />
+
+    <Handle
+        type="target"
+        position={Position.Left}
+        id={`${id}-target`}
+        isConnectable={true}
+        className={cn(
+          "handle-left",
+          isDark && "handle-input-dark",
+          !isDark && "handle-input-light"
+        )}
+      />
+      
+      <Handle
+        type="source"
+        position={Position.Right}
+        id={`${id}-source`}
+        isConnectable={true}
+        className={cn(
+          "handle-right",
+          isDark && "handle-output-dark",
+          !isDark && "handle-output-light"
+        )}
+      />
+    </>
   );
+
 });
 
 FileOpNode.displayName = 'FileOpNode';

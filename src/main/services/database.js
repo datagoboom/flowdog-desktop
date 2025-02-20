@@ -53,6 +53,65 @@ class Database {
         }
       })
 
+      // Define User model
+      this.models.User = this.sequelize.define('User', {
+        id: {
+          type: DataTypes.UUID,
+          defaultValue: DataTypes.UUIDV4,
+          primaryKey: true
+        },
+        username: {
+          type: DataTypes.STRING,
+          allowNull: false,
+          unique: true,
+          validate: {
+            notEmpty: true
+          }
+        },
+        digest: {
+          type: DataTypes.STRING,
+          allowNull: false,
+          validate: {
+            notEmpty: true
+          }
+        },
+        firstName: {
+          type: DataTypes.STRING,
+          allowNull: true
+        },
+        lastName: {
+          type: DataTypes.STRING,
+          allowNull: true
+        },
+        avatar: {
+          type: DataTypes.STRING,
+          allowNull: true
+        }
+      }, {
+        tableName: 'Users', // Explicitly set the table name
+        timestamps: true,
+        indexes: [
+          {
+            unique: true,
+            fields: ['username']
+          }
+        ]
+      });
+
+      // Define Integration model
+      this.models.Integration = this.sequelize.define('Integration', {
+        id: {
+          type: DataTypes.STRING,
+          primaryKey: true
+        },
+        config: {
+          type: DataTypes.JSON,
+          allowNull: false
+        }
+      }, {
+        timestamps: true
+      });
+
       // Sync models with database
       // In production, you might want to use { force: false }
       await this.sequelize.sync({ force: false })
@@ -234,6 +293,104 @@ class Database {
       console.error('Failed to create connection instance:', error)
       throw error
     }
+  }
+
+  // User management methods
+  async createUser(userData) {
+    try {
+      const user = await this.models.User.create(userData);
+      return {
+        success: true,
+        user: user.toJSON()
+      };
+    } catch (error) {
+      console.error('Failed to create user:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  async getUser(id) {
+    try {
+      const user = await this.models.User.findByPk(id);
+      return user ? user.toJSON() : null;
+    } catch (error) {
+      console.error('Failed to get user:', error);
+      throw error;
+    }
+  }
+
+  async getUserByUsername(username) {
+    try {
+      const user = await this.models.User.findOne({
+        where: { username }
+      });
+      return user ? user.toJSON() : null;
+    } catch (error) {
+      console.error('Failed to get user by username:', error);
+      throw error;
+    }
+  }
+
+  async updateUser(id, userData) {
+    try {
+      const [updated] = await this.models.User.update(userData, {
+        where: { id }
+      });
+      if (updated) {
+        const user = await this.getUser(id);
+        return {
+          success: true,
+          user
+        };
+      }
+      return {
+        success: false,
+        error: 'User not found'
+      };
+    } catch (error) {
+      console.error('Failed to update user:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  async deleteUser(id) {
+    try {
+      const deleted = await this.models.User.destroy({
+        where: { id }
+      });
+      return {
+        success: deleted > 0
+      };
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Integration methods
+  async saveIntegration(data) {
+    return await this.models.Integration.create(data);
+  }
+
+  async getIntegration(id) {
+    return await this.models.Integration.findByPk(id);
+  }
+
+  async listIntegrations() {
+    return await this.models.Integration.findAll();
+  }
+
+  async deleteIntegration(id) {
+    return await this.models.Integration.destroy({ where: { id } });
   }
 }
 

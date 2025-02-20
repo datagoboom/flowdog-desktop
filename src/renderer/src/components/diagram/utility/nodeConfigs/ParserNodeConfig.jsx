@@ -5,7 +5,7 @@ import Select from '../../../common/Select';
 import Input from '../../../common/Input';
 import { Body2 } from '../../../common/Typography';
 
-const PARSER_MODES = [
+const PRSR_MODES = [
   { value: 'json', label: 'JSON' },
   { value: 'xml', label: 'XML' },
   { value: 'text', label: 'Plain Text (Coming Soon)', disabled: true }
@@ -56,7 +56,7 @@ const ParserNodeConfig = memo(({ node }) => {
           <li><code>HTTP_01.response.data</code> - Get the entire data array</li>
           <li><code>HTTP_01.response.data[].name</code> - Get names from all items</li>
           <li><code>HTTP_01.response.data[0]</code> - Get first item in array</li>
-          <li><code>PARSER_01.response.status</code> - Get response status</li>
+          <li><code>PRSR_01.response.status</code> - Get response status</li>
         </ul>
   
         <button 
@@ -89,7 +89,7 @@ const ParserNodeConfig = memo(({ node }) => {
               <li><code className="bg-slate-100 dark:bg-slate-800 px-1">HTTP_01.response.data[].id</code> - Extract all IDs</li>
               <li><code className="bg-slate-100 dark:bg-slate-800 px-1">HTTP_01.response.data[0]</code> - First item</li>
               <li><code className="bg-slate-100 dark:bg-slate-800 px-1">HTTP_01.response.headers</code> - Get headers object</li>
-              <li><code className="bg-slate-100 dark:bg-slate-800 px-1">PARSER_01.response.data[].email</code> - Get all emails</li>
+              <li><code className="bg-slate-100 dark:bg-slate-800 px-1">PRSR_01.response.data[].email</code> - Get all emails</li>
             </ul>
           </div>
          

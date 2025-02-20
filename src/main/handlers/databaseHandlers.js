@@ -50,12 +50,7 @@ function getQueryType(query) {
 export const databaseHandlers = {
   'storage.test-connection': async (event, config) => {
     try {
-      // Log the raw input
-      console.log('Testing connection with config:', {
-        ...config,
-        password: config?.password ? '[REDACTED]' : undefined
-      });
-
+    
       if (!config?.type) {
         throw new Error(`Database type is required. Received: ${JSON.stringify(config)}`);
       }
@@ -66,7 +61,6 @@ export const databaseHandlers = {
             throw new Error('SQLite database file path is required');
           }
 
-          console.log('Testing SQLite connection:', config.file);
           const db = await open({
             filename: config.file,
             driver: sqlite3.Database
@@ -74,7 +68,6 @@ export const databaseHandlers = {
           
           await db.get('SELECT 1');
           await db.close();
-          console.log('SQLite connection test successful');
           return { success: true };
         }
 
@@ -123,14 +116,10 @@ export const databaseHandlers = {
 
   'storage.save-connection': async (connectionData) => {
     try {
-      console.log('Saving connection data:', {
-        ...connectionData,
-        password: connectionData.password ? '[REDACTED]' : undefined
-      })
+      await database.saveConnection(connectionData)
 
       await database.saveConnection(connectionData)
-      console.log('Connection saved successfully with ID:', connectionData.id)
-      
+      return { success: true }
       return { success: true }
     } catch (error) {
       console.error('Failed to save connection:', error)
@@ -192,13 +181,6 @@ export const databaseHandlers = {
     try {
       const { connectionId, query, input = {} } = params;
 
-      console.log('Processing query template:', {
-        query,
-        input: JSON.stringify(input, (key, value) => 
-          key === 'password' ? '[REDACTED]' : value
-        )
-      });
-
       // Get the connection details
       const connection = await database.getConnection(connectionId);
       if (!connection) {
@@ -224,8 +206,6 @@ export const databaseHandlers = {
       } else {
         finalQuery = interpolateQuery(query, input);
       }
-
-      console.log('Executing query:', finalQuery);
 
       // Create Sequelize instance
       let sequelize;
@@ -271,7 +251,6 @@ export const databaseHandlers = {
       try {
         // Determine query type and execute
         const queryType = getQueryType(finalQuery);
-        console.log('Query type:', queryType);
 
         // For DDL queries (CREATE, ALTER, DROP), use RAW type
         if (finalQuery.trim().toLowerCase().startsWith('create') ||
