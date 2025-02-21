@@ -1,19 +1,16 @@
+// main/index.js
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { nodeHandlers } from './handlers/nodeHandlers'
 import { storageHandlers } from './handlers/storageHandlers'
-import { databaseHandlers } from './handlers/databaseHandlers'
 import database from './services/database'
-import { dialogHandlers } from './handlers/dialogHandlers'
-import { createTray, updateTrayMenu } from './tray'
+import { createTray } from './tray'
 import axios from 'axios'
-import fs from 'fs/promises'
-import path from 'path'
 import { initializeStorage } from './handlers/storageHandlers'
+import { setupDashboardHandlers } from './handlers/dashboardHandlers'
 import { authHandlers } from './handlers/authHandlers'
 
 const execAsync = promisify(exec)
@@ -34,7 +31,11 @@ function createWindow() {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: true,
+      allowRunningInsecureContent: false
     }
   })
 
@@ -42,10 +43,22 @@ function createWindow() {
     mainWindow.show()
   })
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
-    return { action: 'deny' }
-  })
+  // Restrict navigation to prevent phishing
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const allowedOrigins = ['http://localhost:5173']; // Add your allowed origins
+    const parsedUrl = new URL(url);
+    if (!allowedOrigins.includes(parsedUrl.origin)) {
+      event.preventDefault();
+    }
+  });
+
+  // Safe external link handling
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https:') || url.startsWith('http:')) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
 
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
@@ -81,6 +94,9 @@ function registerHandlers() {
   Object.entries(authHandlers).forEach(([channel, handler]) => {
     ipcMain.handle(channel, handler)
   })
+
+  // Register dashboard handlers
+  setupDashboardHandlers(ipcMain)
 }
 
 // Add HTTP request handler

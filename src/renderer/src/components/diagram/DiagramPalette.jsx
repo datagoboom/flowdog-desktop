@@ -23,9 +23,9 @@ import Input from '../common/Input';
 import { NODE_TYPES, NODE_CATEGORIES } from '../../constants/nodeTypes';
 import { useApi } from '../../contexts/ApiContext';
 import IconButton from '../common/IconButton';
-import SaveFlowModal from '../modals/SaveFlowModal';
-import OpenFlowModal from '../modals/OpenFlowModal';
-import ConfirmDialog from '../modals/ConfirmDialog';
+import SaveFlowModal from './modals/SaveFlowModal';
+import OpenFlowModal from './modals/OpenFlowModal';
+import ConfirmDialog from './modals/ConfirmDialog';
 
 const DiagramPalette = memo(({ items = [] }) => {
   const [searchQuery, setSearchQuery] = useState('');

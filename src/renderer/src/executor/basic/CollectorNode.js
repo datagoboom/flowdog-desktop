@@ -86,9 +86,23 @@ export default class CollectorNode {
       }
 
       // Update the node data with the new collection
+      let temp_collection = [];
+      if(data.batch && data.batch_size === collection.length){
+        temp_collection = collection;
+        console.log(`Batch size met for node ${nodeId} (${data.batch_size}). Emptying collection.`);
+        collection = [];
+      }
+
       this.updateNodeData(nodeId, 'collection', collection);
 
-      console.log('Updated collection:', collection);
+
+      if(data.batch){
+        if(data.batch_size == collection.length){
+          return formatter.standardResponse(true, temp_collection);
+        }else{
+          return formatter.standardResponse(true, null);
+        }
+      }
 
       return formatter.standardResponse(true, collection);
 

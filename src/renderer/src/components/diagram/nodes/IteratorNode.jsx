@@ -10,16 +10,6 @@ const IteratorNode = memo(({ data, selected, id, isConnectable }) => {
 
   return (
     <>
-      <Handle
-        type="target"
-        position={Position.Left}
-        id={`${id}-target`}
-        isConnectable={isConnectable}
-        className={cn(
-          "w-3 h-3",
-          isDark ? "bg-gray-700" : "bg-gray-200"
-        )}
-      />
       
       <BaseNode
         id={id}
@@ -32,13 +22,25 @@ const IteratorNode = memo(({ data, selected, id, isConnectable }) => {
       />
       
       <Handle
+        type="target"
+        position={Position.Left}
+        id={`${id}-target`}
+        isConnectable={isConnectable}
+        className={cn(
+          "handle-left",
+          isDark && "handle-input-dark",
+          !isDark && "handle-input-light"
+        )}
+      />
+      <Handle
         type="source"
         position={Position.Right}
         id={`${id}-source`}
         isConnectable={isConnectable}
         className={cn(
-          "w-3 h-3",
-          isDark ? "bg-gray-700" : "bg-gray-200"
+          "handle-right",
+          isDark && "handle-output-dark",
+          !isDark && "handle-output-light"
         )}
       />
     </>

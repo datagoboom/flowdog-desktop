@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import Modal from '../common/Modal';
-import Input from '../common/Input';
-import Button from '../common/Button';
+import Modal from '../../common/Modal';
+import Input from '../../common/Input';
+import Button from '../../common/Button';
 import { Save } from 'lucide-react';
 
 const SaveFlowModal = ({ isOpen, onClose, onSave }) => {
@@ -42,8 +42,6 @@ const SaveFlowModal = ({ isOpen, onClose, onSave }) => {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Enter flow description"
-            multiline
-            rows={3}
           />
         </div>
 

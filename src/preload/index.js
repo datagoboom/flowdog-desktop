@@ -1,3 +1,4 @@
+// preload/index.js
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
@@ -67,6 +68,12 @@ const api = {
   database: {
     executeQuery: (connectionId, query, parameters) => 
       ipcRenderer.invoke('database.execute-query', connectionId, query, parameters)
+  },
+  dashboard: {
+    save: (data) => ipcRenderer.invoke('dashboard.save', data),
+    list: () => ipcRenderer.invoke('dashboard.list'),
+    delete: (id) => ipcRenderer.invoke('dashboard.delete', id),
+    get: (id) => ipcRenderer.invoke('dashboard.get', id)
   },
   nodes: {
     database: {
@@ -140,6 +147,30 @@ contextBridge.exposeInMainWorld(
     listIntegrations: () => 
       ipcRenderer.invoke('storage.list-integrations'),
     deleteIntegration: (id) => 
-      ipcRenderer.invoke('storage.delete-integration', id)
+      ipcRenderer.invoke('storage.delete-integration', id),
+
+    // Dashboard operations with validation
+    listDashboards: () => {
+      const result = ipcRenderer.invoke('dashboard.list');
+      return result;
+    },
+    saveDashboard: (data) => {
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid data format');
+      }
+      return ipcRenderer.invoke('dashboard.save', data);
+    },
+    deleteDashboard: (id) => {
+      if (typeof id !== 'string' || !/^[a-zA-Z0-9-_]+$/.test(id)) {
+        throw new Error('Invalid dashboard ID');
+      }
+      return ipcRenderer.invoke('dashboard.delete', id);
+    },
+    getDashboard: (id) => {
+      if (typeof id !== 'string' || !/^[a-zA-Z0-9-_]+$/.test(id)) {
+        throw new Error('Invalid dashboard ID');
+      }
+      return ipcRenderer.invoke('dashboard.get', id);
+    }
   }
 );

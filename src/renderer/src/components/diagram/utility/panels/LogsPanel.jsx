@@ -1,16 +1,35 @@
-import { memo } from 'react';
-import { FileText } from 'lucide-react';
+import { memo, useState, useMemo } from 'react';
+import { FileText, Search } from 'lucide-react';
 import { useLogger } from '../../../../contexts/LoggerContext';
 import Button from '../../../common/Button';
+import Input from '../../../common/Input';
 import { Body1, Body2, Caption } from '../../../common/Typography';
 import Typography from '../../../common/Typography';
-import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import moment from 'moment';
 
 const LogsPanel = memo(() => {
   const { logs, clearLogs } = useLogger();
   const [expandedLogs, setExpandedLogs] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Filter logs based on search term
+  const filteredLogs = useMemo(() => {
+    if (!searchTerm) return logs;
+    
+    const term = searchTerm.toLowerCase();
+    return logs.filter(log => {
+      const searchableContent = [
+        log.type,
+        log.name,
+        log.sources,
+        JSON.stringify(log.data),
+        JSON.stringify(log.sourceData)
+      ].join(' ').toLowerCase();
+      
+      return searchableContent.includes(term);
+    });
+  }, [logs, searchTerm]);
 
   if (logs.length === 0) {
     return (
@@ -26,15 +45,32 @@ const LogsPanel = memo(() => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-        <Body1 className="font-medium">Execution Logs</Body1>
-        <Button variant="light" color="red" size="sm" onClick={clearLogs}>
-          Clear
-        </Button>
+      <div className="flex flex-col gap-2 p-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between">
+          <Body1 className="font-medium">Execution Logs</Body1>
+          <Button variant="light" color="red" size="sm" onClick={clearLogs}>
+            Clear
+          </Button>
+        </div>
+        
+        <Input
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search logs..."
+          leftIcon={<Search className="w-4 h-4" />}
+          fullWidth
+          variant="filled"
+        />
+        
+        {searchTerm && (
+          <Caption className="text-slate-500">
+            Found {filteredLogs.length} of {logs.length} logs
+          </Caption>
+        )}
       </div>
 
       <div className="flex-1 overflow-auto flex flex-col w-full">
-        {logs.map((log) => {
+        {filteredLogs.map((log) => {
           const iterationLabel = log.iteration 
             ? `Iteration ${log.iteration.current}/${log.iteration.total}`
             : '';

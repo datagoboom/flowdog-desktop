@@ -42,7 +42,7 @@ const TextDisplayNodeConfig = memo(({ node }) => {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div>
           <Body2 className="font-medium mb-2">Max Height (px)</Body2>
           <Input

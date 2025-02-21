@@ -9,7 +9,8 @@ const Modal = ({
   title, 
   children, 
   icon,
-  maxWidth = 'max-w-md'
+  maxWidth = 'max-w-md',
+  height = 'h-full'
 }) => {
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -32,7 +33,7 @@ const Modal = ({
         </Transition.Child>
 
         {/* Modal */}
-        <div className="fixed inset-0 overflow-y-auto">
+        <div className={cn("fixed inset-0 overflow-y-auto")}>
           <div className="flex min-h-full items-center justify-center p-4 text-center">
             <Transition.Child
               as={Fragment}
@@ -46,7 +47,8 @@ const Modal = ({
               <Dialog.Panel 
                 className={cn(
                   "w-full transform overflow-hidden rounded-lg bg-white dark:bg-slate-800 p-6 text-left align-middle shadow-xl transition-all",
-                  maxWidth
+                  maxWidth,
+                  height
                 )}
               >
                 {/* Header */}

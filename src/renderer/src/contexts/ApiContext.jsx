@@ -80,6 +80,27 @@ export function ApiProvider({ children }) {
     return await window.api.invoke('storage.delete-integration', id);
   }, []);
 
+  // Dashboard API
+  const loadFlow = useCallback(async (flowId) => {
+    return await window.api.invoke('dashboard.load-flow', flowId);
+  }, []);
+
+  const saveDashboard = useCallback(async (dashboard) => {
+    return await window.api.invoke('dashboard.save', dashboard);
+  }, []);
+
+  const deleteDashboard = useCallback(async (dashboardId) => {
+    return await window.api.invoke('dashboard.delete', dashboardId);
+  }, []);
+
+  const getDashboard = useCallback(async (dashboardId) => {
+    return await window.api.invoke('dashboard.get', dashboardId);
+  }, []);
+
+  const listDashboards = useCallback(async () => {
+    return await window.api.invoke('dashboard.list');
+  }, []);
+
   const api = {
     nodes: {
       command: {
@@ -105,7 +126,12 @@ export function ApiProvider({ children }) {
       saveIntegration,
       getIntegration,
       listIntegrations,
-      deleteIntegration
+      deleteIntegration,
+      loadFlow,
+      saveDashboard,
+      deleteDashboard,
+      getDashboard,
+      listDashboards
     },
     auth: {
       checkSetup: () => window.api.invoke('auth.check-setup'),
@@ -123,6 +149,11 @@ export function ApiProvider({ children }) {
       request: async (requestData) => {
         console.log('Making HTTP request through API context:', requestData);
         return await window.api.http.request(requestData);
+      }
+    },
+    executor: {
+      executeFlow: async (flow) => {
+        return await ipcRenderer.invoke('executor:executeFlow', flow);
       }
     }
   };

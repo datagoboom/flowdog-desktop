@@ -7,8 +7,9 @@ import { open } from 'sqlite'
 import sqlite3 from 'sqlite3'
 import { readFile, writeFile, mkdir, readdir, unlink } from 'fs/promises'
 import path from 'path'
-import { app } from 'electron'
+import { app, ipcMain } from 'electron'
 import fs from 'fs/promises'
+import { setupDashboardHandlers } from './dashboardHandlers'
 
 // Create a flows directory in the app's user data folder
 const flowsDir = path.join(app.getPath('userData'), 'flows')
@@ -543,6 +544,75 @@ export function registerStorageHandlers(ipcMain, db) {
 export async function initializeStorage() {
   await ensureNodeTemplatesDir();
 }
+
+// Ensure storage directories exist
+const ensureStorageDirs = async () => {
+  const flowsPath = path.join(app.getPath('userData'), 'flows');
+  await fs.mkdir(flowsPath, { recursive: true });
+  return flowsPath;
+};
+
+export const setupStorageHandlers = () => {
+  // Set up flow storage handlers
+  ipcMain.handle('storage:loadFlow', async (_, flowId) => {
+    try {
+      const flowsPath = await ensureStorageDirs();
+      const filePath = path.join(flowsPath, `${flowId}.json`);
+      const content = await fs.readFile(filePath, 'utf-8');
+      return JSON.parse(content);
+    } catch (error) {
+      console.error('Failed to load flow:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('storage:saveFlow', async (_, flow) => {
+    try {
+      const flowsPath = await ensureStorageDirs();
+      const filePath = path.join(flowsPath, `${flow.id}.json`);
+      await fs.writeFile(filePath, JSON.stringify(flow, null, 2), 'utf-8');
+      return flow;
+    } catch (error) {
+      console.error('Failed to save flow:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('storage:listFlows', async () => {
+    try {
+      const flowsPath = await ensureStorageDirs();
+      const files = await fs.readdir(flowsPath);
+      const flows = await Promise.all(
+        files
+          .filter(file => file.endsWith('.json'))
+          .map(async (file) => {
+            const filePath = path.join(flowsPath, file);
+            const content = await fs.readFile(filePath, 'utf-8');
+            return JSON.parse(content);
+          })
+      );
+      return flows;
+    } catch (error) {
+      console.error('Failed to list flows:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('storage:deleteFlow', async (_, flowId) => {
+    try {
+      const flowsPath = await ensureStorageDirs();
+      const filePath = path.join(flowsPath, `${flowId}.json`);
+      await fs.unlink(filePath);
+      return true;
+    } catch (error) {
+      console.error('Failed to delete flow:', error);
+      throw error;
+    }
+  });
+
+  // Set up dashboard handlers
+  setupDashboardHandlers();
+};
 
 module.exports = {
   registerStorageHandlers
