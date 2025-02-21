@@ -10,7 +10,9 @@ import {
   Database,
   Terminal,
   Rss,
-  Hash
+  Hash,
+  FileText,
+  ListPlus
 } from 'lucide-react';
 
 // First import all node configs
@@ -26,6 +28,8 @@ import CommandNodeConfig from '../components/diagram/utility/nodeConfigs/Command
 import PromptNodeConfig from '../components/diagram/utility/nodeConfigs/PromptNodeConfig';
 import RSSNodeConfig from '../components/diagram/utility/nodeConfigs/RSSNodeConfig';
 import CounterNodeConfig from '../components/diagram/utility/nodeConfigs/CounterNodeConfig';
+import TextDisplayNodeConfig from '../components/diagram/utility/nodeConfigs/TextDisplayNodeConfig';
+import CollectorNodeConfig from '../components/diagram/utility/nodeConfigs/CollectorNodeConfig';
 
 // Then import all node components
 import HTTPNode from '../components/diagram/nodes/HTTPNode';
@@ -40,6 +44,8 @@ import DatabaseQueryNode from '../components/diagram/nodes/DatabaseQueryNode';
 import CommandNode from '../components/diagram/nodes/CommandNode';
 import RSSNode from '../components/diagram/nodes/RSSNode';
 import CounterNode from '../components/diagram/nodes/CounterNode';
+import TextDisplayNode from '../components/diagram/nodes/TextDisplayNode';
+import CollectorNode from '../components/diagram/nodes/CollectorNode';
 
 export const NODE_CATEGORIES = {
   input: {
@@ -244,6 +250,38 @@ export const NODE_TYPES = {
       limit: 0
     },
   },
+  textDisplay: {
+    type: 'textDisplay',
+    label: 'Text Display',
+    description: 'Display text with template support',
+    category: 'utility',
+    icon: FileText,
+    component: TextDisplayNode,
+    config: TextDisplayNodeConfig,
+    defaultData: {
+      name: 'Text Display',
+      inputText: '',
+      outputText: '',
+      maxHeight: 400,
+      maxWidth: 600,
+    },
+  },
+  collector: {
+    type: 'collector',
+    label: 'Collector',
+    category: 'utility',
+    description: 'Collects values into a persistent array',
+    color: 'blue',
+    component: CollectorNode,
+    config: CollectorNodeConfig,
+    icon: ListPlus,
+    defaultData: {
+      path: '',
+      description: '',
+      collection: [],
+      makeUnique: true
+    }
+  },
 };
 
 // Helper functions at the end
@@ -270,4 +308,22 @@ export const getDefaultData = (type) => {
 export const getNodeColor = (type) => {
   const category = NODE_TYPES[type]?.category;
   return NODE_CATEGORIES[category]?.color || 'gray';
+};
+
+// Update generateNodeId in DiagramContext
+const typeToPrefix = {
+  http: 'HTTP',
+  parser: 'PRSR',
+  conditional: 'COND',
+  iterator: 'ITER',
+  fileop: 'FILE',
+  prompt: 'PRMT',
+  test: 'TEST',
+  databaseQuery: 'DBQ',
+  format: 'FRMT',
+  command: 'CMD',
+  rss: 'RSS',
+  counter: 'CNTR',
+  textDisplay: 'TEXT',
+  collector: 'COLL'
 };

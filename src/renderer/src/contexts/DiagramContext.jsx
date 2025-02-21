@@ -332,7 +332,9 @@ export const DiagramProvider = ({ children }) => {
       format: 'FRMT',
       command: 'CMD',
       rss: 'RSS',
-      counter: 'CNTR'
+      counter: 'CNTR',
+      textDisplay: 'TEXT',
+      collector: 'CLCT'
     };
 
     // Use exact type match instead of toLowerCase()

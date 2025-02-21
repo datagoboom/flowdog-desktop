@@ -170,8 +170,23 @@ export default class ConditionalNode {
 
   async execute(data, inputData, sourceNodes) {
     try {
-      const { conditions = [] } = data;
+      const { conditions = [], ignoreEmptyInput = true } = data;
       this.resetCache();
+
+      // If ignoreEmptyInput is true and inputData is empty/null, skip evaluation
+      if (ignoreEmptyInput && (!inputData || Object.keys(inputData).length === 0)) {
+        console.log('Skipping conditional evaluation - empty input data');
+        return formatter.standardResponse(true, {
+          success: true,
+          outputPath: 'output-false',
+          data: inputData,
+          evaluation: {
+            result: false,
+            skipped: true,
+            reason: 'empty_input'
+          }
+        });
+      }
 
       // Build context from source nodes
       const context = sourceNodes?.reduce((acc, source) => ({
@@ -183,7 +198,8 @@ export default class ConditionalNode {
       console.log('Executing Conditional node with context:', {
         conditions,
         context,
-        localEnvironment: this.localEnvironment
+        localEnvironment: this.localEnvironment,
+        ignoreEmptyInput
       });
 
       if (!conditions.length) {

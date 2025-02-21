@@ -16,6 +16,8 @@ import DatabaseQueryNode from './basic/DatabaseQueryNode';
 import RSSNode from './basic/RSSNode';
 import PromptNode from './basic/PromptNode';
 import CounterNode from './basic/CounterNode';
+import TextDisplayNode from './basic/TextDisplayNode';
+import CollectorNode from './basic/CollectorNode';
 const jq = new JQParser();
 
 export default class FlowExecutor {
@@ -71,7 +73,20 @@ export default class FlowExecutor {
       this.getEnvVar.bind(this),
       this.setEnvironmentVariable,
       this.localEnvironment,
-      (config) => httpRequest(config)
+      (config) => httpRequest(config),
+      this.updateNodeData
+    );
+    this.textDisplayNode = new TextDisplayNode(
+      this.getEnvVar.bind(this),
+      this.setEnvironmentVariable,
+      this.localEnvironment,
+      this.updateNodeData
+    );
+    this.collectorNode = new CollectorNode(
+      this.getEnvVar.bind(this),
+      this.setEnvironmentVariable,
+      this.localEnvironment,
+      this.updateNodeData
     );
 
     // Node executor mapping
@@ -87,7 +102,9 @@ export default class FlowExecutor {
       databaseQuery: this.databaseQueryNode,
       rss: this.rssNode,
       prompt: this.promptNode,
-      counter: this.counterNode
+      counter: this.counterNode,
+      textDisplay: this.textDisplayNode,
+      collector: this.collectorNode
     };
   }
 
@@ -199,6 +216,30 @@ export default class FlowExecutor {
     return levels;
   }
 
+  validateConditionalEdges(nodeId, sourceNodes) {
+    // get edge name(s) connected to this node (edges where target is this node)
+    const conditionalEdges = this.edges
+      .filter(edge => edge.target === nodeId)
+      .filter(edge => edge.source.includes('COND_'));
+
+    // get input that comes from a conditional node
+    let inputs = this.lastInput[nodeId]
+    let conditionalInputNodes = Object.keys(inputs).filter(key => key.includes('COND_'));
+
+    conditionalEdges.forEach(edge => {
+      let srcHandle = edge.sourceHandle;
+      let condInput = sourceNodes.find(node => node.id === edge.source);
+      if(condInput && condInput.data.response.outputPath !== srcHandle) {
+        let lastInput = this.lastInput
+        lastInput[nodeId][edge.source] = null;
+        this.setLastInput(lastInput);
+        console.log("New Last Input: ", this.lastInput);
+      } else {
+        console.log("Cond Input is VALID ", condInput);
+      }
+    });
+  }
+
   async executeNodeAtLevel(nodeId, updateNodeSequence, incrementSequence) {
     const node = this.nodes.find(n => n.id === nodeId);
     if (!node) return;
@@ -239,34 +280,15 @@ export default class FlowExecutor {
         this.setLastInput(this.lastInput);
       }
 
+      // Validate conditional edges before execution
+      this.validateConditionalEdges(nodeId, sourceNodes);
+
       // Execute node using the appropriate executor
       const executor = this.executors[node.type];
       if (!executor) {
         throw new Error(`No executor found for node type: ${node.type}`);
       }
 
-      // get edge name(s) connected to this node (edges where target is this node)
-      const conditionalEdges = this.edges
-        .filter(edge => edge.target === nodeId)
-        .filter(edge => edge.source.includes('COND_'));
-
-      // get input that comes from a conditional node
-      let inputs = this.lastInput[nodeId]
-      let conditionalInputNodes = Object.keys(inputs).filter(key => key.includes('COND_'));
-
-      conditionalEdges.forEach(edge => {
-        let srcHandle = edge.sourceHandle;
-        let condInput = sourceNodes.find(node => node.id === edge.source);
-        if(condInput && condInput.data.response.outputPath !== srcHandle) {
-          let lastInput = this.lastInput
-          lastInput[nodeId][edge.source] = null;
-          this.setLastInput(lastInput);
-          console.log("New Last Input: ", this.lastInput);
-        }else{
-          console.log("Cond Input is VALID ", condInput);
-        }
-      });
-      
       const output = await executor.execute(node.data, this.lastInput[nodeId], sourceNodes, nodeId);
       this.nodeOutputs.set(nodeId, output);
       // Log output for visualization/debugging

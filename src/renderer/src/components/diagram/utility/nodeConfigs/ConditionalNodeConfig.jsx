@@ -5,6 +5,7 @@ import Select from '../../../common/Select';
 import Input from '../../../common/Input';
 import Button from '../../../common/Button';
 import { Body2 } from '../../../common/Typography';
+import Switch from '../../../common/Switch';
 
 // Import operators from the executor
 const OPERATORS = {
@@ -42,6 +43,17 @@ const ConditionalNodeConfig = memo(({ node }) => {
     }
   }, [lastInput, node.id]);
 
+  // Initialize ignoreEmptyInput with default value if not set
+  useEffect(() => {
+    if (node.data.ignoreEmptyInput === undefined) {
+      updateNodeData(node.id, 'ignoreEmptyInput', true);
+    }
+  }, [node.id, node.data.ignoreEmptyInput, updateNodeData]);
+
+  const handleIgnoreEmptyInputChange = useCallback((checked) => {
+    updateNodeData(node.id, 'ignoreEmptyInput', checked);
+  }, [node.id, updateNodeData]);
+
   const handleConditionChange = useCallback((index, field, value) => {
     const conditions = [...(node.data.conditions || [])];
     conditions[index] = {
@@ -74,6 +86,20 @@ const ConditionalNodeConfig = memo(({ node }) => {
 
   return (
     <div className="space-y-6">
+      {/* Settings */}
+      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <Body2 className="font-medium">Ignore Empty Input</Body2>
+            <p className="text-sm text-slate-500">Skip evaluation for null or undefined inputs</p>
+          </div>
+          <Switch
+            checked={node.data.ignoreEmptyInput ?? true}
+            onChange={handleIgnoreEmptyInputChange}
+          />
+        </div>
+      </div>
+
       {/* Conditions */}
       <div className="space-y-4">
         {(node.data.conditions || []).map((condition, index) => (

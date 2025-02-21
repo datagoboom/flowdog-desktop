@@ -31,7 +31,7 @@ const ConditionalNode = memo(({ data, selected, id, isConnectable }) => {
         position={Position.Right}
         id="output-true"
         isConnectable={isConnectable}
-        className="handle-right handle-output-dark handle-green-dark"
+        className="handle-right handle-output-dark bg-green-500"
         style={{ top: '25%' }}
         data-testid="true-handle"
       />

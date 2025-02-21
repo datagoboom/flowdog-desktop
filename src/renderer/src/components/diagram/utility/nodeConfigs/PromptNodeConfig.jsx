@@ -8,6 +8,7 @@ import Select from '../../../common/Select';
 import { Body2, Caption } from '../../../common/Typography';
 import Button from '../../../common/Button';
 import { useNavigate } from 'react-router-dom';
+import TextArea from '../../../common/TextArea';
 
 const PromptNodeConfig = memo(({ node }) => {
   const [selectedIntegration, setSelectedIntegration] = useState(node.data?.integration || '');
@@ -134,12 +135,12 @@ const PromptNodeConfig = memo(({ node }) => {
 
       <div>
         <Body2 className="font-medium">Prompt</Body2>
-        <Input
+        <TextArea
           value={node.data.prompt || ''}
           onChange={handlePromptChange}
           placeholder="Enter your prompt here. Use {{input}} to reference input data"
           variant="filled"
-          size="lg"
+          rows={8}
           fullWidth
         />
       </div>
@@ -149,8 +150,7 @@ const PromptNodeConfig = memo(({ node }) => {
         <div>Node ID: {node.id}</div>
         <div>Type: {node.type}</div>
         <div>Integration: {node.data.integration}</div>
-        <div>Prompt: {node.data.prompt}</div>
-        <div>API Key: {node.data.apiKey ? node.data.apiKey.slice(0, Math.floor(node.data.apiKey.length/2)) + '*'.repeat(Math.floor(node.data.apiKey.length/2)) : ''}</div>
+        <div>API Key: {node.data.apiKey ? node.data.apiKey.slice(0, Math.floor(node.data.apiKey.length/7)) + '*'.repeat(Math.floor(node.data.apiKey.length/4)) : ''}</div>
         <div className="text-xs text-slate-400 mt-1">
           Last updated: {new Date().toLocaleTimeString()}
         </div>

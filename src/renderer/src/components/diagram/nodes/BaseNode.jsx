@@ -21,7 +21,7 @@ const BaseNode = memo(({
   ...props 
 }) => {
   const { isDark } = useTheme();
-  const { executingNodeIds, nodeSequence, lastOutput } = useDiagram();
+  const { lastOutput } = useDiagram();
   const nodeType = NODE_TYPES[type] || {};
   const Icon = nodeType?.icon;
 
