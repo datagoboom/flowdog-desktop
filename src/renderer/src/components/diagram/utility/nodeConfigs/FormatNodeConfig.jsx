@@ -1,5 +1,5 @@
 import { memo, useCallback, useRef } from 'react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import Select from '../../../common/Select';
 import { Body2 } from '../../../common/Typography';
 import TreeView from '../../../common/TreeView';
@@ -12,7 +12,7 @@ const FORMAT_TYPES = [
 ];
 
 const FormatNodeConfig = memo(({ node }) => {
-  const { updateNodeData } = useDiagram();
+  const { updateNodeData } = useFlow();
   const textareaRef = useRef(null);
 
   // Get the last input data from lastInput

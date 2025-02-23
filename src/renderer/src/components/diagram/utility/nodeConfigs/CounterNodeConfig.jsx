@@ -1,12 +1,12 @@
 import { memo, useCallback } from 'react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import Input from '../../../common/Input';
 import Button from '../../../common/Button';
 import { Body2 } from '../../../common/Typography';
 import { RotateCcw } from 'lucide-react';
 
 const CounterNodeConfig = memo(({ node }) => {
-  const { updateNodeData, selectedNode } = useDiagram();
+  const { updateNodeData, selectedNode } = useFlow();
 
   // Make sure we're using the correct node's data
   const nodeData = node?.data || {};

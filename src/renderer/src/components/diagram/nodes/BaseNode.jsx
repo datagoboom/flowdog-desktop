@@ -4,7 +4,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { cn } from '../../../utils';
 import Box from '../../common/Box';
 import { Body2 } from '../../common/Typography';
-import { useDiagram } from '../../../contexts/DiagramContext';
+import { useFlow } from '../../../contexts/FlowContext';
 import Typography from '../../common/Typography';
 import * as Icons from 'lucide-react';
 import { NODE_TYPES, getNodeColor } from '../../../constants/nodeTypes';
@@ -21,7 +21,7 @@ const BaseNode = memo(({
   ...props 
 }) => {
   const { isDark } = useTheme();
-  const { lastOutput } = useDiagram();
+  const { lastOutput } = useFlow();
   const nodeType = NODE_TYPES[type] || {};
   const Icon = nodeType?.icon;
 

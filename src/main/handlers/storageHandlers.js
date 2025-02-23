@@ -1,4 +1,4 @@
-import database from '../services/database'
+import database from '../services/databaseService'
 import { v4 as uuidv4 } from 'uuid'
 import { randomUUID } from 'crypto'
 import { Client } from 'pg'

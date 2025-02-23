@@ -1,10 +1,10 @@
 import { useState, useCallback, useContext } from 'react';
-import { DiagramContext } from '../../../contexts/DiagramContext';
+import { FlowContext } from '../../../contexts/FlowContext';
 
 const NodeLabel = ({ id, isSelected }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(id);
-  const { renameNode } = useContext(DiagramContext);
+  const { renameNode } = useContext(FlowContext);
 
   const handleDoubleClick = useCallback(() => {
     setIsEditing(true);

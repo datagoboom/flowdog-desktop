@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import Input from '../../../common/Input';
 import Select from '../../../common/Select';
 import { Body2 } from '../../../common/Typography';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 
 const RSSNodeConfig = ({ node }) => {
-  const { updateNodeData } = useDiagram();
+  const { updateNodeData } = useFlow();
 
   const handleChange = (field, value) => {
     updateNodeData(node.id, field, value);

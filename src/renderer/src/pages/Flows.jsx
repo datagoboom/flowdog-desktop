@@ -11,7 +11,7 @@ import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
 import DiagramPalette from '../components/diagram/DiagramPalette';
 import PositionableEdge from '../components/diagram/PositionableEdge';
-import { DiagramProvider, useDiagram } from '../contexts/DiagramContext';
+import { FlowProvider, useFlow } from '../contexts/FlowContext';
 import { LoggerProvider } from '../contexts/LoggerContext';
 import UtilityDrawer from '../components/diagram/utility/UtilityDrawer';
 import ContextMenu from '../components/diagram/ContextMenu';
@@ -33,7 +33,7 @@ function DiagramContent() {
     updateDiagramState,
     background,
     sidebarOpen,
-  } = useDiagram();
+  } = useFlow();
   const { isDark } = useTheme();
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);

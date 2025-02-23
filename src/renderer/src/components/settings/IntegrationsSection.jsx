@@ -72,18 +72,23 @@ const IntegrationConfigModal = ({ integration, isOpen, onClose, onSave }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Encrypt sensitive data before sending to main process
-    const encryptedConfig = {};
-    for (const [key, value] of Object.entries(config)) {
-      if (integration.config[key].type === 'password') {
-        encryptedConfig[key] = await encrypt(value);
-      } else {
-        encryptedConfig[key] = value;
+    try {
+      // Encrypt sensitive fields before saving
+      const encryptedConfig = {};
+      for (const [key, value] of Object.entries(config)) {
+        if (integration.config[key].type === 'password' || key === 'apiKey') {
+          encryptedConfig[key] = await encrypt(value);
+        } else {
+          encryptedConfig[key] = value;
+        }
       }
-    }
 
-    await onSave(integration.id, encryptedConfig);
-    onClose();
+      await onSave(integration.id, encryptedConfig);
+      onClose();
+    } catch (error) {
+      console.error('Failed to encrypt and save config:', error);
+      setErrors({ submit: 'Failed to save configuration' });
+    }
   };
 
   return (
@@ -115,6 +120,9 @@ const IntegrationConfigModal = ({ integration, isOpen, onClose, onSave }) => {
             )}
           </div>
         ))}
+        {errors.submit && (
+          <div className="text-red-500 text-sm">{errors.submit}</div>
+        )}
         <div className="flex justify-end gap-2">
           <Button variant="light" onClick={onClose}>Cancel</Button>
           <Button type="submit" color="purple">Save Configuration</Button>
@@ -132,12 +140,10 @@ const IntegrationsSection = () => {
   useEffect(() => {
     const loadIntegrations = async () => {
       try {
-        const result = await api.storage.listIntegrations();
-        console.log('Integrations result:', result);
+        const result = await api.integration.list();
         if (result.success && Array.isArray(result.data)) {
           const configured = {};
           result.data.forEach(integration => {
-            // Handle both direct access and Sequelize model instances
             const config = integration.config || integration.dataValues?.config;
             const id = integration.id || integration.dataValues?.id;
             
@@ -145,7 +151,6 @@ const IntegrationsSection = () => {
               configured[id] = config;
             }
           });
-          console.log('Configured integrations:', configured);
           setConfiguredIntegrations(configured);
         }
       } catch (error) {
@@ -158,7 +163,7 @@ const IntegrationsSection = () => {
 
   const handleSaveConfig = async (integrationId, config) => {
     try {
-      const result = await api.storage.saveIntegration({ id: integrationId, config });
+      const result = await api.integration.save({ id: integrationId, config });
       if (result.success) {
         setConfiguredIntegrations(prev => ({
           ...prev,

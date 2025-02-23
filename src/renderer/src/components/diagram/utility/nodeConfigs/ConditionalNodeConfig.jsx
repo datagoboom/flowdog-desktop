@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import { Plus, X, Info } from 'lucide-react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import Select from '../../../common/Select';
 import Input from '../../../common/Input';
 import Button from '../../../common/Button';
@@ -34,7 +34,7 @@ const OPERATOR_OPTIONS = Object.entries(OPERATORS).map(([value, config]) => ({
 }));
 
 const ConditionalNodeConfig = memo(({ node }) => {
-  const { updateNodeData, lastInput } = useDiagram();
+  const { updateNodeData, lastInput } = useFlow();
   const [lastInputCache, setLastInputCache] = useState(null);
 
   useEffect(() => {

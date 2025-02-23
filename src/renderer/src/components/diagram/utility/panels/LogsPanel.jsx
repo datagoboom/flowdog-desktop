@@ -57,7 +57,6 @@ const LogsPanel = memo(() => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Search logs..."
-          leftIcon={<Search className="w-4 h-4" />}
           fullWidth
           variant="filled"
         />

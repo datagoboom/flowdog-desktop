@@ -37,7 +37,7 @@ const Settings = () => {
   useEffect(() => {
     const loadIntegrations = async () => {
       try {
-        const result = await api.storage.listIntegrations();
+        const result = await api.integration.list();
         if (result.success) {
           const configured = {};
           result.data.forEach(integration => {
@@ -55,7 +55,7 @@ const Settings = () => {
 
   const handleSaveConfig = async (integrationId, config) => {
     try {
-      const result = await api.storage.saveIntegration({ id: integrationId, config });
+      const result = await api.integration.save({ id: integrationId, config });
       if (result.success) {
         setConfiguredIntegrations(prev => ({
           ...prev,
@@ -70,7 +70,7 @@ const Settings = () => {
   // Load connections when component mounts
   useEffect(() => {
     const loadConnections = async () => {
-      const result = await api.storage.listConnections();
+      const result = await api.integration.list();
       if (result.success) {
         setConnections(result.data || []);
       }

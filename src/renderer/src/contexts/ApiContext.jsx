@@ -5,41 +5,41 @@ const ApiContext = createContext();
 export function ApiProvider({ children }) {
   // Nodes API
   const executeCommand = useCallback(async (command, options) => {
-    return await window.api.invoke('nodes.command.execute', command, options);
+    return await window.api.invoke('nodes:command:execute', command, options);
   }, []);
 
   const saveFile = useCallback(async (path, content) => {
-    return await window.api.invoke('nodes.file.save', path, content);
+    return await window.api.invoke('nodes:file:save', path, content);
   }, []);
 
   const openFile = useCallback(async (path) => {
-    return await window.api.invoke('nodes.file.open', path);
+    return await window.api.invoke('nodes:file:open', path);
   }, []);
 
   // Add httpRequest function
   const httpRequest = useCallback(async (config) => {
-    return await window.api.invoke('nodes.http.request', config);
+    return await window.api.invoke('nodes:http:request', config);
   }, []);
 
   // Storage API for flows
   const saveFlow = useCallback(async (flowData) => {
     console.log('ApiContext saveFlow called with:', flowData);
-    return await window.api.invoke('storage.save-flow', flowData);
-  }, []);
-
-  const openFlow = useCallback(async (flowId) => {
-    return await window.api.invoke('storage.open-flow', flowId);
+    return await window.api.invoke('flow:save', flowData);
   }, []);
 
   const listFlows = useCallback(async () => {
-    return await window.api.invoke('storage.list-flows');
+    return await window.api.invoke('flow:list');
+  }, []);
+
+  const getFlow = useCallback(async (flowId) => {
+    return await window.api.invoke('flow:get', flowId);
   }, []);
 
   const deleteFlow = useCallback(async (flowId) => {
-    return await window.api.invoke('storage.delete-flow', flowId);
+    return await window.api.invoke('flow:delete', flowId);
   }, []);
 
-  // Database Connections API
+  // Connection API
   const saveConnection = useCallback(async (connectionData) => {
     console.log('ApiContext: sending connection data:', {
       ...connectionData,
@@ -48,57 +48,79 @@ export function ApiProvider({ children }) {
         password: connectionData.config?.password ? '[REDACTED]' : undefined
       }
     });
-    return await window.api.invoke('storage.save-connection', connectionData);
+    return await window.api.invoke('connection:save', connectionData);
   }, []);
 
   const listConnections = useCallback(async () => {
-    return await window.api.invoke('storage.list-connections');
+    return await window.api.invoke('connection:list');
   }, []);
 
   const deleteConnection = useCallback(async (connectionId) => {
-    return await window.api.invoke('storage.delete-connection', connectionId);
+    return await window.api.invoke('connection:delete', connectionId);
   }, []);
 
   const testConnection = useCallback(async (connectionData) => {
-    return await window.api.invoke('storage.test-connection', connectionData);
+    return await window.api.invoke('connection:test', connectionData);
   }, []);
 
   // Integration API
   const saveIntegration = useCallback(async (data) => {
-    return await window.api.invoke('storage.save-integration', data);
+    return await window.api.invoke('integration:save', data);
   }, []);   
 
   const getIntegration = useCallback(async (id) => {
-    return await window.api.invoke('storage.get-integration', id);
+    return await window.api.invoke('integration:get', id);
   }, []);
 
   const listIntegrations = useCallback(async () => {
-    return await window.api.invoke('storage.list-integrations');
+    return await window.api.invoke('integration:list');
   }, []);
 
   const deleteIntegration = useCallback(async (id) => {
-    return await window.api.invoke('storage.delete-integration', id);
+    return await window.api.invoke('integration:delete', id);
   }, []);
 
   // Dashboard API
-  const loadFlow = useCallback(async (flowId) => {
-    return await window.api.invoke('dashboard.load-flow', flowId);
-  }, []);
-
   const saveDashboard = useCallback(async (dashboard) => {
-    return await window.api.invoke('dashboard.save', dashboard);
+    return await window.api.invoke('dashboard:save', dashboard);
   }, []);
 
   const deleteDashboard = useCallback(async (dashboardId) => {
-    return await window.api.invoke('dashboard.delete', dashboardId);
+    return await window.api.invoke('dashboard:delete', dashboardId);
   }, []);
 
   const getDashboard = useCallback(async (dashboardId) => {
-    return await window.api.invoke('dashboard.get', dashboardId);
+    return await window.api.invoke('dashboard:get', dashboardId);
   }, []);
 
   const listDashboards = useCallback(async () => {
-    return await window.api.invoke('dashboard.list');
+    return await window.api.invoke('dashboard:list');
+  }, []);
+
+  // Node Template API
+  const saveNodeTemplate = useCallback(async (template) => {
+    return await window.api.invoke('node-template:save', template);
+  }, []);
+
+  const listNodeTemplates = useCallback(async () => {
+    return await window.api.invoke('node-template:list');
+  }, []);
+
+  const deleteNodeTemplate = useCallback(async (templateId) => {
+    return await window.api.invoke('node-template:delete', templateId);
+  }, []);
+
+  // Auth API
+  const checkSetup = useCallback(async () => {
+    return await window.api.invoke('auth:check-setup');
+  }, []);
+
+  const setup = useCallback(async (setupData) => {
+    return await window.api.invoke('auth:setup', setupData);
+  }, []);
+
+  const login = useCallback(async (credentials) => {
+    return await window.api.invoke('auth:login', credentials);
   }, []);
 
   const api = {
@@ -114,47 +136,39 @@ export function ApiProvider({ children }) {
         request: httpRequest
       }
     },
-    storage: {
-      saveFlow,
-      openFlow,
-      listFlows,
-      deleteFlow,
-      saveConnection,
-      listConnections,
-      deleteConnection,
-      testConnection,
-      saveIntegration,
-      getIntegration,
-      listIntegrations,
-      deleteIntegration,
-      loadFlow,
-      saveDashboard,
-      deleteDashboard,
-      getDashboard,
-      listDashboards
+    flow: {
+      save: saveFlow,
+      get: getFlow,
+      list: listFlows,
+      delete: deleteFlow
+    },
+    connection: {
+      save: saveConnection,
+      list: listConnections,
+      delete: deleteConnection,
+      test: testConnection
+    },
+    integration: {
+      save: saveIntegration,
+      get: getIntegration,
+      list: listIntegrations,
+      delete: deleteIntegration
+    },
+    nodeTemplate: {
+      save: saveNodeTemplate,
+      list: listNodeTemplates,
+      delete: deleteNodeTemplate
+    },
+    dashboard: {
+      save: saveDashboard,
+      delete: deleteDashboard,
+      get: getDashboard,
+      list: listDashboards
     },
     auth: {
-      checkSetup: () => window.api.invoke('auth.check-setup'),
-      
-      setup: ({ username, password }) => 
-        window.api.invoke('auth.setup', { username, password }),
-      
-      login: ({ username, password }) => 
-        window.api.invoke('auth.login', { username, password }),
-      
-      updateUser: (userData) => 
-        window.api.invoke('auth.update-user', userData)
-    },
-    http: {
-      request: async (requestData) => {
-        console.log('Making HTTP request through API context:', requestData);
-        return await window.api.http.request(requestData);
-      }
-    },
-    executor: {
-      executeFlow: async (flow) => {
-        return await ipcRenderer.invoke('executor:executeFlow', flow);
-      }
+      checkSetup: checkSetup,
+      setup: setup,
+      login: login
     }
   };
 

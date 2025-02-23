@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import { Body2 } from '../../../common/Typography';
 import Select from '../../../common/Select';
 import Input from '../../../common/Input';
@@ -10,7 +10,7 @@ const OPERATION_TYPES = [
 ];
 
 const FileOpNodeConfig = memo(({ node }) => {
-  const { updateNodeData } = useDiagram();
+  const { updateNodeData } = useFlow();
 
   const handleInputChange = (field, value) => {
     updateNodeData(node.id, field, value);

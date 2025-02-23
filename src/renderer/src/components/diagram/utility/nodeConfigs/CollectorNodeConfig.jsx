@@ -1,5 +1,5 @@
 import { memo, useCallback, useState, useEffect } from 'react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import Input from '../../../common/Input';
 import Box from '../../../common/Box';
 import { Body2 } from '../../../common/Typography';
@@ -9,7 +9,7 @@ import { Trash, Info } from 'lucide-react';
 import Tooltip from '../../../common/Tooltip';
 
 const CollectorNodeConfig = memo(({ node }) => {
-  const { updateNodeData } = useDiagram();
+  const { updateNodeData } = useFlow();
   
   // Initialize state from node data directly to avoid unnecessary updates
   const [makeUnique, setMakeUnique] = useState(node.data.makeUnique ?? true);

@@ -1,6 +1,6 @@
 import { memo, useCallback, useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import Select from '../../../common/Select';
 import Input from '../../../common/Input';
 import { Body2 } from '../../../common/Typography';
@@ -12,7 +12,7 @@ const PRSR_MODES = [
 ];
 
 const ParserNodeConfig = memo(({ node }) => {
-  const { updateNodeData, lastInput } = useDiagram();
+  const { updateNodeData, lastInput } = useFlow();
   const [isReferenceExpanded, setIsReferenceExpanded] = useState(false);
   const [lastInputCache, setLastInputCache] = useState(null);
 

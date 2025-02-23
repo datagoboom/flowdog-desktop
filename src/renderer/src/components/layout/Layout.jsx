@@ -54,6 +54,7 @@ const Layout = () => {
         {/* Page Content */}
         <Box
           id="page-content"
+          padding={0}
           className={`
             flex-1
             transition-all

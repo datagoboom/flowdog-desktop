@@ -3,14 +3,14 @@ import { cn } from '../../../../utils';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { NODE_TYPES } from '../../../../constants/nodeTypes';
 import { Body1, Body2 } from '../../../common/Typography';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import { Info, Loader, Save } from 'lucide-react';
 import SaveNodeModal from '../../modals/SaveNodeModal';
 
 const NodeInfo = memo(({ node }) => {
   if (!node) node = {};
   const { isDark } = useTheme(); 
-  const { updateNodeData } = useDiagram();
+  const { updateNodeData } = useFlow();
   const nodeType = NODE_TYPES[node.type];
   const [fakeLoading, setFakeLoading] = useState(false)
   const [saving, setSaving] = useState(false);

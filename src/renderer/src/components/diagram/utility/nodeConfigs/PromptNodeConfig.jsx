@@ -1,7 +1,7 @@
 import { useState, useEffect, memo, useCallback } from 'react';
 import { useApi } from '../../../../contexts/ApiContext';
 import { useAuth } from '../../../../contexts/AuthContext';
-import {useDiagram} from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import { integrations, INTEGRATION_CATEGORIES } from '../../../../constants/integrations';
 import Input from '../../../common/Input';
 import Select from '../../../common/Select';
@@ -14,15 +14,15 @@ const PromptNodeConfig = memo(({ node }) => {
   const [selectedIntegration, setSelectedIntegration] = useState(node.data?.integration || '');
   const [configuredIntegrations, setConfiguredIntegrations] = useState([]);
   const api = useApi();
-  const { decrypt, hasSecretKey } = useAuth();
+  const { hasSecretKey } = useAuth();
   const navigate = useNavigate();
-  const { updateNodeData } = useDiagram();
+  const { updateNodeData } = useFlow();
 
   // Get list of configured AI integrations
   useEffect(() => {
     const loadIntegrations = async () => {
       try {
-        const result = await api.storage.listIntegrations();
+        const result = await api.integration.list();
         console.log('list integrations result', result);
         if (result.success && Array.isArray(result.data)) {
           setConfiguredIntegrations(result.data);
@@ -31,14 +31,12 @@ const PromptNodeConfig = memo(({ node }) => {
           if (result.data.length === 1 && !selectedIntegration) {
             const integration = result.data[0];
             const integrationId = integration.dataValues.id;
-            const apiKey = integration.dataValues.config.apiKey;
+            const encryptedKey = integration.dataValues.config.apiKey;
             
-            if (apiKey) {
-              const decryptedApiKey = decrypt(apiKey);
-              updateNodeData(node.id, 'integration', integrationId);
-              updateNodeData(node.id, 'apiKey', apiKey);
-              setSelectedIntegration(integrationId);
-            }
+            // Store both the integration ID and encrypted key
+            updateNodeData(node.id, 'integration', integrationId);
+            updateNodeData(node.id, 'apiKey', encryptedKey);
+            setSelectedIntegration(integrationId);
           }
         }
       } catch (error) {
@@ -49,31 +47,27 @@ const PromptNodeConfig = memo(({ node }) => {
     if (hasSecretKey) {
       loadIntegrations();
     }
-  }, [api, hasSecretKey, selectedIntegration, node.id, updateNodeData, decrypt]);
-
-  const handleIntegrationChange = useCallback(async (value) => {
-    const selectedConfig = configuredIntegrations.find(i => i.dataValues.id === value);
-    
-    if (selectedConfig) {
-      try {
-        const apiKey = selectedConfig.dataValues.config.apiKey;
-        if (apiKey) {
-          const decryptedApiKey = await decrypt(apiKey);
-          updateNodeData(node.id, 'apiKey', decryptedApiKey);
-          updateNodeData(node.id, 'integration', value);
-          setSelectedIntegration(value);
-        }
-      } catch (error) {
-        console.error('Failed to decrypt API key:', error);
-      }
-    }
-  }, [configuredIntegrations, decrypt, node.id, updateNodeData]);
+  }, [api, hasSecretKey, selectedIntegration, node.id, updateNodeData]);
 
   
 
+  const handleIntegrationChange = useCallback(async (value) => {
+    // Find the selected integration's encrypted key
+    const selectedConfig = configuredIntegrations.find(
+      integration => integration.dataValues.id === value
+    );
+    
+    const encryptedKey = selectedConfig?.dataValues?.config?.apiKey;
+    
+    // Update both integration and apiKey
+    updateNodeData(node.id, 'integration', value);
+    updateNodeData(node.id, 'apiKey', encryptedKey || null);
+    setSelectedIntegration(value);
+  }, [node.id, updateNodeData, configuredIntegrations]);
+
   const handlePromptChange = useCallback((e) => {
     updateNodeData(node.id, 'prompt', e.target.value);
-  }, [node]);
+  }, [node.id, updateNodeData]);
 
   const navigateToSettings = () => {
     navigate('/settings');
@@ -150,7 +144,7 @@ const PromptNodeConfig = memo(({ node }) => {
         <div>Node ID: {node.id}</div>
         <div>Type: {node.type}</div>
         <div>Integration: {node.data.integration}</div>
-        <div>API Key: {node.data.apiKey ? node.data.apiKey.slice(0, Math.floor(node.data.apiKey.length/7)) + '*'.repeat(Math.floor(node.data.apiKey.length/4)) : ''}</div>
+        <div>API Key: {node.data.apiKey}</div>
         <div className="text-xs text-slate-400 mt-1">
           Last updated: {new Date().toLocaleTimeString()}
         </div>

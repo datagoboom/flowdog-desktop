@@ -1,6 +1,6 @@
 import { memo, useCallback, useState, useMemo, useEffect } from 'react';
 import { Plus, X, Info, Check, ChevronDown, ChevronRight } from 'lucide-react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import { Body2 } from '../../../common/Typography';
 import Button from '../../../common/Button';
 import Input from '../../../common/Input';
@@ -28,7 +28,7 @@ const OPERATORS = [
 
 const TestCaseRow = ({ test, onUpdate, onDelete, index, sourceNodes, nodeId }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { lastOutput } = useDiagram();
+  const { lastOutput } = useFlow();
   
   const testResult = useMemo(() => {
     if (!lastOutput || lastOutput.nodeId !== nodeId) return null;
@@ -229,7 +229,7 @@ const TestCaseRow = ({ test, onUpdate, onDelete, index, sourceNodes, nodeId }) =
 };
 
 const TestNodeConfig = memo(({ node }) => {
-  const { updateNodeData, nodes, edges, lastOutput, executingNodeIds} = useDiagram();
+  const { updateNodeData, nodes, edges, lastOutput, executingNodeIds} = useFlow();
   const [localTestData, setLocalTestData] = useState(null);
 
   const isExecuting = executingNodeIds?.has?.(node.id) || false;

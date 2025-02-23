@@ -1,5 +1,5 @@
 import { ThemeProvider } from './contexts/ThemeContext';
-import { DiagramProvider } from './contexts/DiagramContext';
+import { FlowProvider } from './contexts/FlowContext';
 import { LoggerProvider } from './contexts/LoggerContext';
 import { ApiProvider } from './contexts/ApiContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -13,12 +13,12 @@ function App() {
       <ApiProvider>
         <AuthProvider>
           <LoggerProvider>
-            <DiagramProvider>
+            <FlowProvider>
               <DashboardProvider>
                 <Titlebar />
                 <Routes />
               </DashboardProvider>
-            </DiagramProvider>
+            </FlowProvider>
           </LoggerProvider>
         </AuthProvider>
       </ApiProvider>

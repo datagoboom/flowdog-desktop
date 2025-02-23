@@ -3,20 +3,57 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { exec } from 'child_process'
-import { promisify } from 'util'
-import { storageHandlers } from './handlers/storageHandlers'
-import database from './services/database'
+import fs from 'fs/promises'
+import path from 'path'
+import database from './services/databaseService'
 import { createTray } from './tray'
-import axios from 'axios'
-import { initializeStorage } from './handlers/storageHandlers'
-import { setupDashboardHandlers } from './handlers/dashboardHandlers'
+import { flowHandlers } from './handlers/flowHandlers'
+import { connectionHandlers } from './handlers/connectionHandlers'
+import { integrationHandlers } from './handlers/integrationHandlers'
+import { nodeTemplateHandlers } from './handlers/nodeTemplateHandlers'
+import { dashboardHandlers } from './handlers/dashboardHandlers'
 import { authHandlers } from './handlers/authHandlers'
-
-const execAsync = promisify(exec)
+import { databaseHandlers } from './handlers/databaseHandlers'
+import { dialogHandlers } from './handlers/dialogHandlers'
+import { nodeHandlers } from './handlers/nodeHandlers'
+import { envHandlers } from './handlers/envHandlers'
 
 let mainWindow = null
 let tray = null
+
+// Initialize storage directories
+async function initializeStorage() {
+  const userDataPath = app.getPath('userData')
+  const dirs = ['flows', 'integrations', 'nodeTemplates', 'dashboards', 'environments']
+  
+  for (const dir of dirs) {
+    try {
+      await fs.mkdir(path.join(userDataPath, dir), { recursive: true })
+    } catch (error) {
+      console.error(`Failed to create ${dir} directory:`, error)
+    }
+  }
+}
+
+function registerHandlers() {
+  const handlers = {
+    ...flowHandlers,
+    ...connectionHandlers,
+    ...integrationHandlers,
+    ...nodeTemplateHandlers,
+    ...dashboardHandlers,
+    ...authHandlers,
+    ...databaseHandlers,
+    ...dialogHandlers,
+    ...nodeHandlers,
+    ...envHandlers
+  };
+
+  Object.entries(handlers).forEach(([channel, handler]) => {
+    console.log(`Registering handler for channel: ${channel}`);
+    ipcMain.handle(channel, handler);
+  });
+}
 
 function createWindow() {
   // Create the browser window.
@@ -79,114 +116,75 @@ function createWindow() {
 
   // Create tray icon
   tray = createTray(mainWindow)
-
-  // Register IPC handlers
-  storageHandlers.registerHandlers(ipcMain)
 }
-
-function registerHandlers() {
-  // Register each storage handler
-  Object.entries(storageHandlers).forEach(([channel, handler]) => {
-    ipcMain.handle(channel, handler)
-  })
-
-  // Register auth handlers
-  Object.entries(authHandlers).forEach(([channel, handler]) => {
-    ipcMain.handle(channel, handler)
-  })
-
-  // Register dashboard handlers
-  setupDashboardHandlers(ipcMain)
-}
-
-// Add HTTP request handler
-ipcMain.handle('nodes.http.request', async (event, config) => {
-  try {
-    const response = await axios(config);
-    return {
-      success: true,
-      data: {
-        status: response.status,
-        headers: response.headers,
-        data: response.data
-      }
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data
-      }
-    };
-  }
-});
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
-  // Initialize database first
   try {
+    // Initialize database
     await database.initialize()
     console.log('Database initialized successfully')
+
+    // Initialize storage directories
+    await initializeStorage()
+    console.log('Storage directories initialized successfully')
+
+    // Register IPC handlers
+    registerHandlers()
+    console.log('IPC handlers registered successfully')
+
+    // Set app user model id for windows
+    electronApp.setAppUserModelId('com.electron')
+
+    // Default open or close DevTools by F12 in development
+    // and ignore CommandOrControl + R in production.
+    // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
+    app.on('browser-window-created', (_, window) => {
+      optimizer.watchWindowShortcuts(window)
+    })
+
+    // IPC test
+    ipcMain.on('ping', () => console.log('pong'))
+
+    // Add window control handlers
+    ipcMain.on('minimize-window', () => {
+      BrowserWindow.getFocusedWindow()?.minimize()
+    })
+
+    ipcMain.on('maximize-window', () => {
+      const win = BrowserWindow.getFocusedWindow()
+      if (win?.isMaximized()) {
+        win.unmaximize()
+      } else {
+        win?.maximize()
+      }
+    })
+
+    ipcMain.on('close-window', () => {
+      BrowserWindow.getFocusedWindow()?.close()
+    })
+
+    createWindow()
+
+    // Handle quit through dock icon (macOS)
+    app.on('before-quit', () => {
+      app.isQuitting = true
+    })
+
+    // Handle window activation
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow()
+      } else {
+        mainWindow.show()
+      }
+    })
   } catch (error) {
-    console.error('Failed to initialize database:', error)
+    console.error('Failed to initialize application:', error)
     app.quit()
-    return
   }
-
-  // Initialize storage and register handlers
-  await initializeStorage()
-  registerHandlers()
-
-  // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
-
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
-  app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
-  })
-
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
-
-  // Add window control handlers
-  ipcMain.on('minimize-window', () => {
-    BrowserWindow.getFocusedWindow()?.minimize()
-  })
-
-  ipcMain.on('maximize-window', () => {
-    const win = BrowserWindow.getFocusedWindow()
-    if (win?.isMaximized()) {
-      win.unmaximize()
-    } else {
-      win?.maximize()
-    }
-  })
-
-  ipcMain.on('close-window', () => {
-    BrowserWindow.getFocusedWindow()?.close()
-  })
-
-  createWindow()
-
-  // Handle quit through dock icon (macOS)
-  app.on('before-quit', () => {
-    app.isQuitting = true
-  })
-
-  // Handle window activation
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
-    } else {
-      mainWindow.show()
-    }
-  })
 })
 
 // Don't quit when all windows are closed (stay in tray)

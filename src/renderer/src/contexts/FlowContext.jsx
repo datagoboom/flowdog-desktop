@@ -9,7 +9,7 @@ import {
 import { findPreviousNodes } from '../utils/graphUtils';
 import { useLogger } from './LoggerContext';
 import { useApi } from './ApiContext';
-
+import { useAuth } from './AuthContext';
 const STORAGE_KEY = 'workflow_data';
 
 // Add this constant for state properties we want to persist
@@ -30,20 +30,21 @@ const LOCAL_STORAGE_KEYS = {
   ENVIRONMENT: 'flowEnvironment'
 };
 
-export const DiagramContext = createContext(null);
+export const FlowContext = createContext(null);
 
-export const useDiagram = () => {
-  const context = useContext(DiagramContext);
+export const useFlow = () => {
+  const context = useContext(FlowContext);
   if (!context) {
-    throw new Error('useDiagram must be used within a DiagramProvider');
+    throw new Error('useFlow must be used within a FlowProvider');
   }
   return context;
 };
 
-export const DiagramProvider = ({ children }) => {
+export const FlowProvider = ({ children }) => {
   // Get the httpRequest function from the correct path in the API
   const api = useApi();
   const httpRequest = api.nodes.http.request;  // Update this path based on your API structure
+  const { decrypt } = useAuth();
 
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -432,7 +433,8 @@ export const DiagramProvider = ({ children }) => {
         setLastInput,
         setEnvironmentVariable,
         environment,
-        httpRequest
+        httpRequest,
+        decrypt
       );
       
       const result = await executor.execute(updateNodeSequence, incrementSequence);
@@ -457,7 +459,8 @@ export const DiagramProvider = ({ children }) => {
     setLastInput,
     setEnvironmentVariable,
     environment,
-    httpRequest
+    httpRequest,
+    decrypt
   ]);
 
   const pauseExecution = useCallback(() => {
@@ -635,7 +638,7 @@ export const DiagramProvider = ({ children }) => {
       httpRequest
     );
     setExecutor(executor);
-  }, [nodes, edges, environment, httpRequest, addToHistory, addLog, setExecutingNodeIds, updateNodeData, setLastOutput, setLastInput, setEnvironmentVariable]);
+  }, [nodes, edges, environment, httpRequest, decrypt, addToHistory, addLog, setExecutingNodeIds, updateNodeData, setLastOutput, setLastInput, setEnvironmentVariable]);
 
 
   const value = useMemo(() => ({
@@ -758,10 +761,10 @@ export const DiagramProvider = ({ children }) => {
   ]);
 
   return (
-    <DiagramContext.Provider value={value}>
+    <FlowContext.Provider value={value}>
       {children}
-    </DiagramContext.Provider>
+    </FlowContext.Provider>
   );
 };
 
-export default DiagramProvider;
+export default FlowProvider;

@@ -10,7 +10,7 @@ const OpenFlowModal = ({ isOpen, onClose, onOpen }) => {
   const [flows, setFlows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const { storage: { listFlows, deleteFlow } } = useApi();
+  const api = useApi();
 
   useEffect(() => {
     if (isOpen) {
@@ -21,10 +21,16 @@ const OpenFlowModal = ({ isOpen, onClose, onOpen }) => {
   const loadFlows = async () => {
     try {
       setLoading(true);
-      const savedFlows = await listFlows();
-      setFlows(savedFlows);
+      const result = await api.flow.list();
+      if (result.success) {
+        setFlows(result.data || []);
+      } else {
+        console.error('Failed to load flows:', result.error);
+        setFlows([]);
+      }
     } catch (error) {
       console.error('Failed to load flows:', error);
+      setFlows([]);
     } finally {
       setLoading(false);
     }
@@ -33,8 +39,12 @@ const OpenFlowModal = ({ isOpen, onClose, onOpen }) => {
   const handleDelete = async (flowId) => {
     if (window.confirm('Are you sure you want to delete this flow?')) {
       try {
-        await deleteFlow(flowId);
-        await loadFlows(); // Refresh list
+        const result = await api.flow.delete(flowId);
+        if (result.success) {
+          await loadFlows(); // Refresh list
+        } else {
+          console.error('Failed to delete flow:', result.error);
+        }
       } catch (error) {
         console.error('Failed to delete flow:', error);
       }
@@ -53,7 +63,6 @@ const OpenFlowModal = ({ isOpen, onClose, onOpen }) => {
       title="Open Flow"
       icon={<FolderOpen className="w-5 h-5" />}
       maxWidth="max-w-xl"
-
     >
       <div className="space-y-4 h-full">
         <div className="h-full sticky top-0 py-2 z-10">

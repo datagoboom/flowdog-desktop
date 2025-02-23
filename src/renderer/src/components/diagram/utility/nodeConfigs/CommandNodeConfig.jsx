@@ -1,6 +1,6 @@
 import { memo, useState } from 'react';
 import { Body2 } from '../../../common/Typography';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import TextArea from '../../../common/TextArea';
 import Input from '../../../common/Input';
 import Button from '../../../common/Button';
@@ -9,7 +9,7 @@ import { Plus, Trash2, Terminal, Timer, Folder, Variable } from 'lucide-react';
 import TreeView from '../../../common/TreeView';
 
 const CommandNodeConfig = memo(({ node }) => {
-  const { updateNodeData } = useDiagram();
+  const { updateNodeData } = useFlow();
   const [newVarName, setNewVarName] = useState('');
   const [newVarValue, setNewVarValue] = useState('');
 

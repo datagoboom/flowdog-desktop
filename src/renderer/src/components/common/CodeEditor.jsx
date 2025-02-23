@@ -1,13 +1,13 @@
 import { useRef, useEffect, useState } from 'react';
 import hljs from 'highlight.js';
-import { useDiagram } from '../../contexts/DiagramContext';
+import { useFlow } from '../../contexts/FlowContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export default function CodeEditor({ value = '', node, language, updateField }) {
   const overlayRef = useRef(null);
   const editorRef = useRef(null);
   const { isDark } = useTheme();
-  const { updateNodeData } = useDiagram();
+  const { updateNodeData } = useFlow();
   const [rows, setRows] = useState(1);
   const [localValue, setLocalValue] = useState(value);
   const [highlightedCode, setHighlightedCode] = useState('');

@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useDiagram } from '../../contexts/DiagramContext';
+import { useFlow } from '../../contexts/FlowContext';
 import { Body1 } from './Typography';
 import Ripple from './Ripple';
 import { cn } from '../../utils';
@@ -20,12 +20,12 @@ const SidebarItem = forwardRef(({
   onClick,
   ...props
 }, ref) => {
-  const diagramContext = useDiagram();
+  const flowContext = useFlow();
   const { isDark } = useTheme();
   const { ripples, addRipple } = Ripple({ color: "rgba(255, 255, 255, 0.2)", duration: 1000 });
 
   // Use prop for utility variant, context for default
-  const effectiveIsOpen = utility ? isOpenProp : diagramContext.sidebarOpen;
+  const effectiveIsOpen = utility ? isOpenProp : flowContext.sidebarOpen;
 
   const handleClick = (event) => {
     if (!disabled) {

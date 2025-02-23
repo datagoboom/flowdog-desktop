@@ -3,11 +3,11 @@ import { Handle, Position } from 'reactflow';
 import { FileText } from 'lucide-react';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { cn } from '../../../utils';
-import {useDiagram} from '../../../contexts/DiagramContext';
+import {useFlow} from '../../../contexts/FlowContext';
 
 const TextDisplayNode = memo(({ data, selected, id, isConnectable }) => {
   const { isDark } = useTheme();
-  const {lastOutput} = useDiagram();
+  const {lastOutput} = useFlow();
   const [displayText, setDisplayText] = useState('');
 
 

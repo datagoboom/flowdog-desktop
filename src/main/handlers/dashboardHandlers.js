@@ -1,98 +1,108 @@
 // main/handlers/dashboardHandlers.js
-import { ipcMain, app } from 'electron';
+import { app } from 'electron';
 import fs from 'fs/promises';
 import path from 'path';
-import { validateDashboard, sanitizePath } from '../utils/validation';
+import { sanitizePath, responder } from '../utils/helpers';
 
-// Ensure dashboards directory exists
+const dashboardsDir = path.join(app.getPath('userData'), 'dashboards');
+
 const ensureDashboardsDir = async () => {
-  const dashboardsPath = path.join(app.getPath('userData'), 'dashboards');
-  await fs.mkdir(dashboardsPath, { recursive: true });
-  return dashboardsPath;
+  try {
+    await fs.mkdir(dashboardsDir, { recursive: true });
+  } catch (error) {
+    console.error('Failed to create dashboards directory:', error);
+  }
 };
 
-export const setupDashboardHandlers = () => {
-  // List all dashboards
-  ipcMain.handle('dashboard.list', async () => {
+export const dashboardHandlers = {
+  'dashboard:list': async () => {
     try {
-      const dashboardsPath = await ensureDashboardsDir();
-      const files = await fs.readdir(dashboardsPath);
+      await ensureDashboardsDir();
+      const files = await fs.readdir(dashboardsDir);
       
       const dashboards = await Promise.all(
         files
           .filter(file => file.endsWith('.json'))
           .map(async (file) => {
-            const filePath = path.join(dashboardsPath, file);
-            // Validate path is within dashboards directory
-            if (!filePath.startsWith(dashboardsPath)) {
+            const filePath = path.join(dashboardsDir, file);
+            if (!filePath.startsWith(dashboardsDir)) {
               throw new Error('Invalid dashboard path');
             }
             const content = await fs.readFile(filePath, 'utf-8');
-            const dashboard = JSON.parse(content);
-            return validateDashboard(dashboard);
+            return JSON.parse(content);
           })
       );
 
-      return dashboards.sort((a, b) => b.updated_at - a.updated_at);
+      return responder(true, dashboards.sort((a, b) => b.updated_at - a.updated_at), null);
     } catch (error) {
       console.error('Failed to list dashboards:', error);
-      throw error;
+      return responder(false, null, error.message);
     }
-  });
+  },
 
-  // Save dashboard
-  ipcMain.handle('dashboard.save', async (_, dashboard) => {
+  'dashboard:save': async (_, dashboard) => {
     try {
-      // Validate dashboard data
-      const validatedDashboard = validateDashboard(dashboard);
+      if (!dashboard?.id) {
+        throw new Error('Dashboard ID is required');
+      }
+
+      await ensureDashboardsDir();
+      const sanitizedId = sanitizePath(dashboard.id);
+      const filePath = path.join(dashboardsDir, `${sanitizedId}.json`);
       
-      const dashboardsPath = await ensureDashboardsDir();
-      const sanitizedId = sanitizePath(validatedDashboard.id);
-      const filePath = path.join(dashboardsPath, `${sanitizedId}.json`);
-      
-      // Ensure path is within dashboards directory
-      if (!filePath.startsWith(dashboardsPath)) {
+      if (!filePath.startsWith(dashboardsDir)) {
         throw new Error('Invalid dashboard path');
       }
       
+      const dashboardData = {
+        ...dashboard,
+        updated_at: Date.now()
+      };
+
       await fs.writeFile(
         filePath,
-        JSON.stringify(validatedDashboard, null, 2),
+        JSON.stringify(dashboardData, null, 2),
         'utf-8'
       );
 
-      return validatedDashboard;
+      return responder(true, dashboardData, null);
     } catch (error) {
       console.error('Failed to save dashboard:', error);
-      throw error;
+      return responder(false, null, error.message);
     }
-  });
+  },
 
-  // Delete dashboard
-  ipcMain.handle('dashboard.delete', async (_, dashboardId) => {
+  'dashboard:delete': async (_, dashboardId) => {
     try {
-      const dashboardsPath = await ensureDashboardsDir();
-      const filePath = path.join(dashboardsPath, `${dashboardId}.json`);
+      if (!dashboardId) {
+        throw new Error('Dashboard ID is required');
+      }
+
+      await ensureDashboardsDir();
+      const filePath = path.join(dashboardsDir, `${dashboardId}.json`);
       
       await fs.unlink(filePath);
-      return true;
+      return responder(true, null, null);
     } catch (error) {
       console.error('Failed to delete dashboard:', error);
-      throw error;
+      return responder(false, null, error.message);
     }
-  });
+  },
 
-  // Get single dashboard
-  ipcMain.handle('dashboard.get', async (_, dashboardId) => {
+  'dashboard:get': async (_, dashboardId) => {
     try {
-      const dashboardsPath = await ensureDashboardsDir();
-      const filePath = path.join(dashboardsPath, `${dashboardId}.json`);
+      if (!dashboardId) {
+        throw new Error('Dashboard ID is required');
+      }
+
+      await ensureDashboardsDir();
+      const filePath = path.join(dashboardsDir, `${dashboardId}.json`);
       
       const content = await fs.readFile(filePath, 'utf-8');
-      return JSON.parse(content);
+      return responder(true, JSON.parse(content), null);
     } catch (error) {
       console.error('Failed to get dashboard:', error);
-      throw error;
+      return responder(false, null, error.message);
     }
-  });
+  }
 }; 

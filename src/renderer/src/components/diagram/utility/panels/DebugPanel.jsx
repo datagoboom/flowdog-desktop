@@ -1,6 +1,6 @@
 import { memo, useState } from 'react';
 import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import { Body1, Body2 } from '../../../common/Typography';
 import { cn } from '../../../../utils';
 import Input from '../../../common/Input';
@@ -121,7 +121,7 @@ const EnvironmentVariableRow = memo(({ name, value, onChange, onDelete }) => {
 });
 
 const DebugPanel = memo(() => {
-  const { nodes, edges, environment, setEnvironmentVariable } = useDiagram();
+  const { nodes, edges, environment, setEnvironmentVariable } = useFlow();
   const [variables, setVariables] = useState(
     Object.entries(environment.variables || {}).map(([name, value]) => ({ name, value }))
   );

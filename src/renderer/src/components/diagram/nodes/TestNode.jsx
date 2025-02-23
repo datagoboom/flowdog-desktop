@@ -4,11 +4,11 @@ import { Check, X } from 'lucide-react';
 import { cn } from '../../../utils';
 import BaseNode from './BaseNode';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { useDiagram } from '../../../contexts/DiagramContext';
+import { useFlow } from '../../../contexts/FlowContext';
 
 const TestNode = memo(({ data, selected, id, isConnectable }) => {
   const { isDark } = useTheme();
-  const { lastOutput, executingNodeIds} = useDiagram();
+  const { lastOutput, executingNodeIds} = useFlow();
 
   const [localTestData, setLocalTestData] = useState(null);
   

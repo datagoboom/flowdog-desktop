@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useFlows } from '../../../contexts/FlowContext';
+import { useFlow } from '../../../contexts/FlowContext';
 
 export function TextPanel({ panel, onUpdate }) {
   const [data, setData] = useState(panel.last_data?.data || {});
-  const { executeFlow } = useFlows();
+  const { executeFlow } = useFlow();
 
   useEffect(() => {
     const fetchData = async () => {

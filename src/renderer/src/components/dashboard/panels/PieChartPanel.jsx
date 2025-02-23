@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useFlows } from '../../../contexts/FlowContext';
+import { useFlow } from '../../../contexts/FlowContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 const DEFAULT_COLORS = [
@@ -9,7 +9,7 @@ const DEFAULT_COLORS = [
 
 export function PieChartPanel({ panel, onUpdate }) {
   const [data, setData] = useState(panel.last_data?.data || []);
-  const { executeFlow } = useFlows();
+  const { executeFlow } = useFlow();
 
   useEffect(() => {
     const fetchData = async () => {

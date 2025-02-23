@@ -14,7 +14,7 @@ import {
   FilePlus,
 } from 'lucide-react';
 import { cn } from '../../utils';
-import { useDiagram } from '../../contexts/DiagramContext';
+import { useFlow } from '../../contexts/FlowContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import Button from '../common/Button';
 import Select from '../common/Select';
@@ -61,9 +61,9 @@ const DiagramPalette = memo(({ items = [] }) => {
     redoStack,
     setNodes,
     setEdges,
-  } = useDiagram();
+  } = useFlow();
   const { isDark } = useTheme();
-  const { storage: { saveFlow, openFlow }, nodes: { file: { save: saveFile, open: openFile } } } = useApi();
+  const api = useApi();
 
   const groupedItems = useMemo(() => {
     if (!searchQuery) {
@@ -170,7 +170,7 @@ const DiagramPalette = memo(({ items = [] }) => {
 
       // Regular save - update existing flow
       const parsedFlow = JSON.parse(flowData);
-      await saveFlow({
+      await api.flow.save({
         ...parsedFlow,
         nodes,
         edges,
@@ -196,7 +196,7 @@ const DiagramPalette = memo(({ items = [] }) => {
 
   const handleSaveNew = async (flowInfo) => {
     try {
-      console.log('Saving flow with data:', flowInfo); // Debug log
+      console.log('Saving flow with data:', flowInfo);
       
       const flowData = {
         ...flowInfo,
@@ -205,9 +205,9 @@ const DiagramPalette = memo(({ items = [] }) => {
         timestamp: Date.now()
       };
       
-      console.log('Full flow data being sent:', flowData); // Debug log
+      console.log('Full flow data being sent:', flowData);
       
-      const result = await saveFlow(flowData);
+      const result = await api.flow.save(flowData);
       
       if (result.success) {
         // Update the flow with the assigned ID
@@ -230,13 +230,13 @@ const DiagramPalette = memo(({ items = [] }) => {
     try {
       clearWorkflow();
       // Pass just the ID to openFlow
-      const loadedFlow = await openFlow(flow.id);
+      const loadedFlow = await api.flow.get(flow.id);
       
-      if (loadedFlow) {
+      if (loadedFlow.success) {
         // Set nodes and edges from the loaded flow
-        setNodes(loadedFlow.nodes || []);
-        setEdges(loadedFlow.edges || []);
-        localStorage.setItem('currentFlow', JSON.stringify(loadedFlow));
+        setNodes(loadedFlow.data.nodes || []);
+        setEdges(loadedFlow.data.edges || []);
+        localStorage.setItem('currentFlow', JSON.stringify(loadedFlow.data));
         setOpenModalVisible(false);
       }
     } catch (error) {
@@ -263,7 +263,7 @@ const DiagramPalette = memo(({ items = [] }) => {
         if (currentFlow) {
           // Update existing flow
           const flowData = JSON.parse(currentFlow);
-          await saveFlow({
+          await api.flow.save({
             ...flowData,
             nodes,
             edges,
@@ -310,10 +310,9 @@ const DiagramPalette = memo(({ items = [] }) => {
 
   const loadTemplates = async () => {
     try {
-      const result = await window.api.storage.listNodeTemplates();
+      const result = await api.nodeTemplate.list();
       
       if (result.success && Array.isArray(result.data)) {
-
         setTemplates(result.data);
       } else {
         console.error('Invalid template data:', result);

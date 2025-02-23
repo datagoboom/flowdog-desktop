@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import Box from './Box';
 import IconButton from './IconButton';
-import { useDiagram } from '../../contexts/DiagramContext';
+import { useFlow } from '../../contexts/FlowContext';
 import { ThemeToggle } from './ThemeToggle';
 import { LogOut } from 'lucide-react';
 import {ChevronLeft, ChevronRight} from 'lucide-react';
@@ -22,7 +22,7 @@ const Sidebar = ({
   className = '',
   ...props
 }) => {
-  const { sidebarOpen, setSidebarOpen } = useDiagram();
+  const { sidebarOpen, setSidebarOpen } = useFlow();
   const [isOpen, setIsOpen] = useState(sidebarOpen);
   const { isDark, toggleTheme } = useTheme();
   const { logout } = useAuth();

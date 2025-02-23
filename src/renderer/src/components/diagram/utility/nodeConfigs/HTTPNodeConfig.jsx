@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useState, useMemo } from 'react';
 import { Plus, X, Play, Info } from 'lucide-react';
 import { cn } from '../../../../utils';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import Input from '../../../common/Input';
 import Select from '../../../common/Select';
 import Button from '../../../common/Button';
@@ -67,7 +67,7 @@ const isTemplating = (value, position) => {
 };
 
 const EnvironmentVariableRow = memo(({ variable, onUpdate, onDelete }) => {
-  const { environment } = useDiagram();
+  const { environment } = useFlow();
   const [selectedVar, setSelectedVar] = useState(variable.variable || '');
   const [newVarName, setNewVarName] = useState(variable.newVariableName || '');
 
@@ -143,7 +143,7 @@ const EnvironmentVariableRow = memo(({ variable, onUpdate, onDelete }) => {
 });
 
 const HTTPNodeConfig = memo(({ node }) => {
-  const { updateNodeData, lastInput, environment, setEnvironmentVariable } = useDiagram();
+  const { updateNodeData, lastInput, environment, setEnvironmentVariable } = useFlow();
   const api = useApi();
   const [testData, setTestData] = useState(null);
   const [activeField, setActiveField] = useState(null);

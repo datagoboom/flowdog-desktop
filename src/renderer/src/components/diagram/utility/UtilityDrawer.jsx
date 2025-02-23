@@ -1,5 +1,5 @@
 import { useState, memo, useEffect, useRef } from 'react';
-import { useDiagram } from '../../../contexts/DiagramContext';
+import { useFlow } from '../../../contexts/FlowContext';
 import { cn } from '../../../utils';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { Body1, Body2 } from '../../common/Typography';
@@ -14,7 +14,7 @@ const UtilityDrawer = memo(() => {
   const [isOpen, setIsOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('info');
   const { isDark } = useTheme();
-  const { selectedNode, autoOpenDrawer, autoCloseDrawer } = useDiagram();
+  const { selectedNode, autoOpenDrawer, autoCloseDrawer } = useFlow();
   const drawerRef = useRef(null);
   const lastNodeRef = useRef(null);
 

@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
 
   // Check if setup is complete on mount
   useEffect(() => {
-    const checkSetup = async () => {
+    const checkSetupStatus = async () => {
       try {
         const result = await api.auth.checkSetup();
         console.log('Setup check result:', result);
@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    checkSetup();
+    checkSetupStatus();
   }, [api]);
 
   // Generate secret key from user credentials using Web Crypto API
@@ -44,19 +44,30 @@ export const AuthProvider = ({ children }) => {
     return Array.from(new Uint8Array(finalHash)).map(b => b.toString(16).padStart(2, '0')).join('');
   };
 
-  const setup = useCallback(async (username, password) => {
+  const setup = async (setupData) => {
     try {
-      const result = await api.auth.setup({ username, password });
+      console.log('AuthContext: Sending setup data:', setupData);
+      const result = await api.auth.setup(setupData);
+      console.log('AuthContext: Setup result:', result);
+  
       if (result.success) {
         setUser(result.user);
         setIsSetupComplete(true);
+        const firstRunResult = await api.storage.firstRun();
+        console.log('AuthContext: First run result:', firstRunResult);
+        
+        // Store any necessary auth tokens or session data
+        if (result.token) {
+          localStorage.setItem('authToken', result.token);
+        }
       }
+  
       return result;
     } catch (error) {
-      console.error('Setup failed:', error);
+      console.error('Setup error:', error);
       return { success: false, error: error.message };
     }
-  }, [api]);
+  };
 
   const login = useCallback(async (username, password) => {
     try {
@@ -148,6 +159,7 @@ export const AuthProvider = ({ children }) => {
 
   // Utility function to decrypt data
   const decrypt = useCallback(async (encryptedData) => {
+    console.log('Decrypting data:', encryptedData);
     if (!secretKey) {
       throw new Error('No secret key available');
     }
@@ -203,6 +215,8 @@ export const AuthProvider = ({ children }) => {
         key,
         encryptedContent
       );
+
+      console.log('Decrypted content:', decryptedContent);
   
       // Convert back to string
       const decoder = new TextDecoder();
@@ -223,15 +237,15 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    isAuthenticated: !!user,
     isLoading,
     isSetupComplete,
-    isAuthenticated: !!user,
-    setup,
+    hasSecretKey: !!secretKey,
     login,
     logout,
+    setup,
     encrypt,
-    decrypt,
-    hasSecretKey: !!secretKey
+    decrypt
   };
 
   console.log('AuthContext: Current state:', { 

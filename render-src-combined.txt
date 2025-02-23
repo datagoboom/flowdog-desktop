@@ -2,7 +2,7 @@
 <App.jsx>
 ===========================================
 import { ThemeProvider } from './contexts/ThemeContext';
-import { DiagramProvider } from './contexts/DiagramContext';
+import { FlowProvider } from './contexts/FlowContext';
 import { LoggerProvider } from './contexts/LoggerContext';
 import { ApiProvider } from './contexts/ApiContext';
 import { Titlebar } from './components/Titlebar';
@@ -13,10 +13,10 @@ function App() {
     <ThemeProvider>
       <ApiProvider>
         <LoggerProvider>
-          <DiagramProvider>
+          <FlowProvider>
             <Titlebar />
             <Routes />
-          </DiagramProvider>
+          </FlowProvider>
         </LoggerProvider>
       </ApiProvider>
     </ThemeProvider>
@@ -1164,14 +1164,14 @@ export default Checkbox;
 ===========================================
 import { useRef, useEffect, useState } from 'react';
 import hljs from 'highlight.js';
-import { useDiagram } from '../../contexts/DiagramContext';
+import { useFlow } from '../../contexts/FlowContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export default function CodeEditor({ value = '', node, language, updateField }) {
   const overlayRef = useRef(null);
   const editorRef = useRef(null);
   const { isDark } = useTheme();
-  const { updateNodeData } = useDiagram();
+  const { updateNodeData } = useFlow();
   const [rows, setRows] = useState(1);
   const [localValue, setLocalValue] = useState(value);
   const [highlightedCode, setHighlightedCode] = useState('');
@@ -3170,7 +3170,7 @@ import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
 import Box from './Box';
 import IconButton from './IconButton';
-import { useDiagram } from '../../contexts/DiagramContext';
+import { useFlow } from '../../contexts/FlowContext';
 import { ThemeToggle } from './ThemeToggle';
 import { LogOut } from 'lucide-react';
 import {ChevronLeft, ChevronRight} from 'lucide-react';
@@ -3187,7 +3187,7 @@ const Sidebar = ({
   className = '',
   ...props
 }) => {
-  const { sidebarOpen, setSidebarOpen } = useDiagram();
+  const { sidebarOpen, setSidebarOpen } = useFlow();
   const [isOpen, setIsOpen] = useState(sidebarOpen);
   const { isDark, toggleTheme } = useTheme();
 
@@ -3292,7 +3292,7 @@ export default Sidebar;
 import { forwardRef } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useDiagram } from '../../contexts/DiagramContext';
+import { useFlow } from '../../contexts/FlowContext';
 import { Body1 } from './Typography';
 import Ripple from './Ripple';
 import { cn } from '../../utils';
@@ -3311,12 +3311,12 @@ const SidebarItem = forwardRef(({
   onClick,
   ...props
 }, ref) => {
-  const diagramContext = useDiagram();
+  const flowContext = useFlow();
   const { isDark } = useTheme();
   const { ripples, addRipple } = Ripple({ color: "rgba(255, 255, 255, 0.2)", duration: 1000 });
 
   // Use prop for utility variant, context for default
-  const effectiveIsOpen = utility ? isOpenProp : diagramContext.sidebarOpen;
+  const effectiveIsOpen = utility ? isOpenProp : flowContext.sidebarOpen;
 
   const handleClick = (event) => {
     if (!disabled) {
@@ -4634,7 +4634,7 @@ import { getBezierPath, getStraightPath, getSmoothStepPath, getSimpleBezierPath 
 import PropTypes from 'prop-types';
 import { cn } from '../../utils';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useDiagram } from '../../contexts/DiagramContext';
+import { useFlow } from '../../contexts/FlowContext';
 
 const DiagramEdge = memo(({
   id,
@@ -4647,7 +4647,7 @@ const DiagramEdge = memo(({
   style = {},
   markerEnd
 }) => {
-  const { isExecuting, edgeType } = useDiagram();
+  const { isExecuting, edgeType } = useFlow();
   const { isDark } = useTheme();
 
   // Get the path based on the edge type
@@ -4738,7 +4738,7 @@ import {
   Trash,
 } from 'lucide-react';
 import { cn } from '../../utils';
-import { useDiagram } from '../../contexts/DiagramContext';
+import { useFlow } from '../../contexts/FlowContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import Button from '../common/Button';
 import Select from '../common/Select';
@@ -4767,7 +4767,7 @@ const DiagramPalette = memo(({ items = [] }) => {
     setAutoCloseDrawer,
     stepDelay,
     setStepDelay,
-  } = useDiagram();
+  } = useFlow();
   const { isDark } = useTheme();
 
   const groupedItems = useMemo(() => {
@@ -5105,7 +5105,7 @@ import {
 import PropTypes from 'prop-types';
 import { cn } from '../../utils';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useDiagram } from '../../contexts/DiagramContext';
+import { useFlow } from '../../contexts/FlowContext';
 import ClickableBaseEdge from './ClickableBaseEdge';
 
 const PositionableEdge = memo(({
@@ -5122,7 +5122,7 @@ const PositionableEdge = memo(({
   data,
 }) => {
   const reactFlowInstance = useReactFlow();
-  const { isExecuting, edgeType} = useDiagram();
+  const { isExecuting, edgeType} = useFlow();
   const { isDark } = useTheme();
   const positionHandlers = data?.positionHandlers ?? [];
   const dragHandleRef = useRef(null);
@@ -5489,7 +5489,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { cn } from '../../../utils';
 import Box from '../../common/Box';
 import { Body2 } from '../../common/Typography';
-import { useDiagram } from '../../../contexts/DiagramContext';
+import { useFlow } from '../../../contexts/FlowContext';
 import Typography from '../../common/Typography';
 import * as Icons from 'lucide-react';
 import { NODE_TYPES, getNodeColor } from '../../../constants/nodeTypes';
@@ -5506,7 +5506,7 @@ const BaseNode = memo(({
   ...props 
 }) => {
   const { isDark } = useTheme();
-  const { executingNodeIds, nodeSequence, lastOutput } = useDiagram();
+  const { executingNodeIds, nodeSequence, lastOutput } = useFlow();
   const nodeType = NODE_TYPES[type];
   const Icon = nodeType?.icon;
 
@@ -6132,12 +6132,12 @@ export default LoggerNode;
 <components/diagram/nodes/NodeLabel.jsx>
 ===========================================
 import { useState, useCallback, useContext } from 'react';
-import { DiagramContext } from '../../../contexts/DiagramContext';
+import { FlowContext } from '../../../contexts/FlowContext';
 
 const NodeLabel = ({ id, isSelected }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(id);
-  const { renameNode } = useContext(DiagramContext);
+  const { renameNode } = useContext(FlowContext);
 
   const handleDoubleClick = useCallback(() => {
     setIsEditing(true);
@@ -6373,11 +6373,11 @@ import { Check, X } from 'lucide-react';
 import { cn } from '../../../utils';
 import BaseNode from './BaseNode';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { useDiagram } from '../../../contexts/DiagramContext';
+import { useFlow } from '../../../contexts/FlowContext';
 
 const TestNode = memo(({ data, selected, id, isConnectable }) => {
   const { isDark } = useTheme();
-  const { lastOutput, executingNodeIds} = useDiagram();
+  const { lastOutput, executingNodeIds} = useFlow();
 
   const [localTestData, setLocalTestData] = useState(null);
   
@@ -6532,7 +6532,7 @@ export {
 <components/diagram/utility/UtilityDrawer.jsx>
 ===========================================
 import { useState, memo, useEffect, useRef } from 'react';
-import { useDiagram } from '../../../contexts/DiagramContext';
+import { useFlow } from '../../../contexts/FlowContext';
 import { cn } from '../../../utils';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { Body1, Body2 } from '../../common/Typography';
@@ -6547,7 +6547,7 @@ const UtilityDrawer = memo(() => {
   const [isOpen, setIsOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('info');
   const { isDark } = useTheme();
-  const { selectedNode, autoOpenDrawer, autoCloseDrawer } = useDiagram();
+  const { selectedNode, autoOpenDrawer, autoCloseDrawer } = useFlow();
   const drawerRef = useRef(null);
   const lastNodeRef = useRef(null);
 
@@ -6742,7 +6742,7 @@ export default UtilitySidebar;
 ===========================================
 import { memo, useState } from 'react';
 import { Body2 } from '../../../common/Typography';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import TextArea from '../../../common/TextArea';
 import Input from '../../../common/Input';
 import Button from '../../../common/Button';
@@ -6751,7 +6751,7 @@ import { Plus, Trash2, Terminal, Timer, Folder, Variable } from 'lucide-react';
 import TreeView from '../../../common/TreeView';
 
 const CommandNodeConfig = memo(({ node }) => {
-  const { updateNodeData } = useDiagram();
+  const { updateNodeData } = useFlow();
   const [newVarName, setNewVarName] = useState('');
   const [newVarValue, setNewVarValue] = useState('');
 
@@ -6921,7 +6921,7 @@ export default CommandNodeConfig;
 ===========================================
 import { memo, useCallback, useMemo, useEffect, useState } from 'react';
 import { Plus, X, Info } from 'lucide-react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import Select from '../../../common/Select';
 import Input from '../../../common/Input';
 import Button from '../../../common/Button';
@@ -6935,7 +6935,7 @@ const OPERATORS = [
 ];
 
 const ConditionalNodeConfig = memo(({ node }) => {
-  const { updateNodeData, lastInput } = useDiagram();
+  const { updateNodeData, lastInput } = useFlow();
   const [lastInputCache, setLastInputCache] = useState(null);
 
   useEffect(() => {
@@ -7104,7 +7104,7 @@ export default ConditionalNodeConfig;
 ===========================================
 import { memo, useState, useMemo, useEffect } from 'react';
 import { Plus, X } from 'lucide-react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import { useApi } from '../../../../contexts/ApiContext';
 import { Body2, Caption } from '../../../common/Typography';
 import Button from '../../../common/Button';
@@ -7141,7 +7141,7 @@ const ParameterRow = memo(({ parameter, onUpdate, onDelete }) => {
 });
 
 const DatabaseQueryNodeConfig = memo(({ node }) => {
-  const { updateNodeData, lastOutput } = useDiagram();
+  const { updateNodeData, lastOutput } = useFlow();
   const api = useApi();
   const [isExpanded, setIsExpanded] = useState(false);
   const [connections, setConnections] = useState([]);
@@ -7334,7 +7334,7 @@ export default DatabaseQueryNodeConfig;
 <components/diagram/utility/nodeConfigs/FileOpNodeConfig.jsx>
 ===========================================
 import { memo, useCallback } from 'react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import { Body2 } from '../../../common/Typography';
 import Select from '../../../common/Select';
 import Input from '../../../common/Input';
@@ -7345,7 +7345,7 @@ const OPERATION_TYPES = [
 ];
 
 const FileOpNodeConfig = memo(({ node }) => {
-  const { updateNodeData } = useDiagram();
+  const { updateNodeData } = useFlow();
 
   const handleInputChange = (field, value) => {
     updateNodeData(node.id, field, value);
@@ -7435,7 +7435,7 @@ export default FileOpNodeConfig;
 <components/diagram/utility/nodeConfigs/FormatNodeConfig.jsx>
 ===========================================
 import { memo, useCallback, useRef } from 'react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import Select from '../../../common/Select';
 import { Body2 } from '../../../common/Typography';
 import TreeView from '../../../common/TreeView';
@@ -7448,7 +7448,7 @@ const FORMAT_TYPES = [
 ];
 
 const FormatNodeConfig = memo(({ node }) => {
-  const { updateNodeData } = useDiagram();
+  const { updateNodeData } = useFlow();
   const textareaRef = useRef(null);
 
   // Get the last input data from lastInput
@@ -7576,7 +7576,7 @@ export default FormatNodeConfig;
 import { memo, useCallback, useEffect, useState, useMemo } from 'react';
 import { Plus, X, Play, Info } from 'lucide-react';
 import { cn } from '../../../../utils';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import Input from '../../../common/Input';
 import Select from '../../../common/Select';
 import Button from '../../../common/Button';
@@ -7641,7 +7641,7 @@ const isTemplating = (value, position) => {
 };
 
 const EnvironmentVariableRow = memo(({ variable, onUpdate, onDelete }) => {
-  const { environment } = useDiagram();
+  const { environment } = useFlow();
   const [selectedVar, setSelectedVar] = useState(variable.variable || '');
   const [newVarName, setNewVarName] = useState(variable.newVariableName || '');
 
@@ -7717,7 +7717,7 @@ const EnvironmentVariableRow = memo(({ variable, onUpdate, onDelete }) => {
 });
 
 const HTTPNodeConfig = memo(({ node }) => {
-  const { updateNodeData, lastInput, environment, setEnvironmentVariable } = useDiagram();
+  const { updateNodeData, lastInput, environment, setEnvironmentVariable } = useFlow();
   const [testData, setTestData] = useState(null);
   const [activeField, setActiveField] = useState(null);
   const [cursorPosition, setCursorPosition] = useState(null);
@@ -8363,7 +8363,7 @@ import { memo, useState, useEffect, useCallback } from 'react';import { RefreshC
 import { Body2 } from '../../../common/Typography';
 import Input from '../../../common/Input';
 import Select from '../../../common/Select';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 
 const ITERATOR_MODES = [
   { value: 'input', label: 'Input Iteration' },
@@ -8379,7 +8379,7 @@ const DELIMITER_OPTIONS = [
 ];
 
 const IteratorNodeConfig = memo(({ node }) => {
-  const { updateNodeData, lastInput } = useDiagram();
+  const { updateNodeData, lastInput } = useFlow();
   const [arrayPath, setArrayPath] = useState(node.data?.arrayPath || '');
   const [customList, setCustomList] = useState(node.data?.rawText || '');
   const [previewItems, setPreviewItems] = useState([]);
@@ -8485,7 +8485,7 @@ export default IteratorNodeConfig;
 ===========================================
 import { memo, useCallback, useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import Select from '../../../common/Select';
 import Input from '../../../common/Input';
 import { Body2 } from '../../../common/Typography';
@@ -8497,7 +8497,7 @@ const PRSR_MODES = [
 ];
 
 const ParserNodeConfig = memo(({ node }) => {
-  const { updateNodeData, lastInput } = useDiagram();
+  const { updateNodeData, lastInput } = useFlow();
   const [isReferenceExpanded, setIsReferenceExpanded] = useState(false);
   const [lastInputCache, setLastInputCache] = useState(null);
 
@@ -8653,10 +8653,10 @@ import { useState, useEffect } from 'react';
 import Input from '../../../common/Input';
 import Select from '../../../common/Select';
 import { Body2 } from '../../../common/Typography';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 
 const RSSNodeConfig = ({ node }) => {
-  const { updateNodeData } = useDiagram();
+  const { updateNodeData } = useFlow();
 
   const handleChange = (field, value) => {
     updateNodeData(node.id, field, value);
@@ -8718,7 +8718,7 @@ export default RSSNodeConfig;
 ===========================================
 import { memo, useCallback, useState, useMemo, useEffect } from 'react';
 import { Plus, X, Info, Check, ChevronDown, ChevronRight } from 'lucide-react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import { Body2 } from '../../../common/Typography';
 import Button from '../../../common/Button';
 import Input from '../../../common/Input';
@@ -8746,7 +8746,7 @@ const OPERATORS = [
 
 const TestCaseRow = ({ test, onUpdate, onDelete, index, sourceNodes, nodeId }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { lastOutput } = useDiagram();
+  const { lastOutput } = useFlow();
   
   const testResult = useMemo(() => {
     if (!lastOutput || lastOutput.nodeId !== nodeId) return null;
@@ -8947,7 +8947,7 @@ const TestCaseRow = ({ test, onUpdate, onDelete, index, sourceNodes, nodeId }) =
 };
 
 const TestNodeConfig = memo(({ node }) => {
-  const { updateNodeData, nodes, edges, lastOutput, executingNodeIds} = useDiagram();
+  const { updateNodeData, nodes, edges, lastOutput, executingNodeIds} = useFlow();
   const [localTestData, setLocalTestData] = useState(null);
 
   const isExecuting = executingNodeIds?.has?.(node.id) || false;
@@ -9136,7 +9136,7 @@ export const nodeConfigs = {
 ===========================================
 import { memo, useState } from 'react';
 import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import { Body1, Body2 } from '../../../common/Typography';
 import { cn } from '../../../../utils';
 import Input from '../../../common/Input';
@@ -9257,7 +9257,7 @@ const EnvironmentVariableRow = memo(({ name, value, onChange, onDelete }) => {
 });
 
 const DebugPanel = memo(() => {
-  const { nodes, edges, environment, setEnvironmentVariable } = useDiagram();
+  const { nodes, edges, environment, setEnvironmentVariable } = useFlow();
   const [variables, setVariables] = useState(
     Object.entries(environment.variables || {}).map(([name, value]) => ({ name, value }))
   );
@@ -9491,13 +9491,13 @@ import { cn } from '../../../../utils';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { NODE_TYPES } from '../../../../constants/nodeTypes';
 import { Body1, Body2 } from '../../../common/Typography';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import { Info, Loader } from 'lucide-react';
 
 const NodeInfo = memo(({ node }) => {
   if (!node) node = {};
   const { isDark } = useTheme(); 
-  const { updateNodeData } = useDiagram();
+  const { updateNodeData } = useFlow();
   const nodeType = NODE_TYPES[node.type];
   const [fakeLoading, setFakeLoading] = useState(false)
 
@@ -10399,7 +10399,7 @@ export function useApi() {
   return context;
 } 
 ===========================================
-<contexts/DiagramContext.jsx>
+<contexts/FlowContext.jsx>
 ===========================================
 import { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { initStorage, saveState, loadState, clearState } from '../utils/storageUtils';
@@ -10433,17 +10433,17 @@ const LOCAL_STORAGE_KEYS = {
   ENVIRONMENT: 'flowEnvironment'
 };
 
-export const DiagramContext = createContext(null);
+export const FlowContext = createContext(null);
 
-export const useDiagram = () => {
-  const context = useContext(DiagramContext);
+export const useFlow = () => {
+  const context = useContext(FlowContext);
   if (!context) {
-    throw new Error('useDiagram must be used within a DiagramProvider');
+    throw new Error('useFlow must be used within a FlowProvider');
   }
   return context;
 };
 
-export const DiagramProvider = ({ children }) => {
+export const FlowProvider = ({ children }) => {
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [history, setHistory] = useState([]);
@@ -10959,13 +10959,13 @@ export const DiagramProvider = ({ children }) => {
   ]);
 
   return (
-    <DiagramContext.Provider value={value}>
+    <FlowContext.Provider value={value}>
       {children}
-    </DiagramContext.Provider>
+    </FlowContext.Provider>
   );
 };
 
-export default DiagramProvider;
+export default FlowProvider;
 ===========================================
 <contexts/LoggerContext.jsx>
 ===========================================
@@ -12802,7 +12802,7 @@ import { cn } from '../utils';
 import { useTheme } from '../contexts/ThemeContext';
 import DiagramPalette from '../components/diagram/DiagramPalette';
 import PositionableEdge from '../components/diagram/PositionableEdge';
-import { DiagramProvider, useDiagram } from '../contexts/DiagramContext';
+import { FlowProvider, useFlow } from '../contexts/FlowContext';
 import { LoggerProvider } from '../contexts/LoggerContext';
 import UtilityDrawer from '../components/diagram/utility/UtilityDrawer';
 import ContextMenu from '../components/diagram/ContextMenu';
@@ -12824,7 +12824,7 @@ function DiagramContent() {
     updateDiagramState,
     background,
     sidebarOpen,
-  } = useDiagram();
+  } = useFlow();
   const { isDark } = useTheme();
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);

@@ -1,11 +1,11 @@
 import { memo, useCallback, useEffect, useState } from 'react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import { Body2 } from '../../../common/Typography';
 import TextArea from '../../../common/TextArea';
 import Input from '../../../common/Input';
 
 const TextDisplayNodeConfig = memo(({ node }) => {
-  const { updateNodeData, lastOutput } = useDiagram();
+  const { updateNodeData, lastOutput } = useFlow();
   const [outputText, setOutputText] = useState('');
   const handleInputTextChange = useCallback((e) => {
     updateNodeData(node.id, 'inputText', e.target.value);

@@ -9,7 +9,7 @@ import {
 import PropTypes from 'prop-types';
 import { cn } from '../../utils';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useDiagram } from '../../contexts/DiagramContext';
+import { useFlow } from '../../contexts/FlowContext';
 import ClickableBaseEdge from './ClickableBaseEdge';
 
 const PositionableEdge = memo(({
@@ -26,7 +26,7 @@ const PositionableEdge = memo(({
   data,
 }) => {
   const reactFlowInstance = useReactFlow();
-  const { isExecuting, edgeType} = useDiagram();
+  const { isExecuting, edgeType} = useFlow();
   const { isDark } = useTheme();
   const positionHandlers = data?.positionHandlers ?? [];
   const dragHandleRef = useRef(null);

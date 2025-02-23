@@ -310,7 +310,7 @@ export const getNodeColor = (type) => {
   return NODE_CATEGORIES[category]?.color || 'gray';
 };
 
-// Update generateNodeId in DiagramContext
+// Update generateNodeId in FlowContext
 const typeToPrefix = {
   http: 'HTTP',
   parser: 'PRSR',

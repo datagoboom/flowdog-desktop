@@ -1,176 +1,182 @@
-// preload/index.js
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
-// Custom APIs for renderer
+// Whitelist of valid channels for security
+const validChannels = [
+  // Auth endpoints
+  'auth:check-setup',
+  'auth:setup',
+  'auth:login',
+
+  // Flow endpoints
+  'flow:save',
+  'flow:get',
+  'flow:list',
+  'flow:delete',
+
+  // Connection endpoints
+  'connection:test',
+  'connection:save',
+  'connection:list',
+  'connection:delete',
+
+  // Environment endpoints
+  'env:save',
+  'env:get',
+  'env:list',
+
+  // Integration endpoints
+  'integration:save',
+  'integration:get',
+  'integration:list',
+  'integration:delete',
+
+  // Node template endpoints
+  'node-template:save',
+  'node-template:list',
+  'node-template:delete',
+
+  // Dialog endpoints
+  'dialog:open',
+  'dialog:save',
+
+  // Database endpoints
+  'database:execute',
+
+  // Dashboard endpoints
+  'dashboard:save',
+  'dashboard:list',
+  'dashboard:delete',
+  'dashboard:get',
+
+  // Node operation endpoints
+  'nodes:database:query',
+  'nodes:http:request'
+];
+
+// Validation utilities
+const validateId = (id) => {
+  if (typeof id !== 'string' || !/^[a-zA-Z0-9-_]+$/.test(id)) {
+    throw new Error('Invalid ID format');
+  }
+  return id;
+};
+
+const validateObject = (obj) => {
+  if (!obj || typeof obj !== 'object') {
+    throw new Error('Invalid data format');
+  }
+  return obj;
+};
+
+// Main API definition
 const api = {
   invoke: async (channel, ...args) => {
-    return await ipcRenderer.invoke(channel, ...args)
+    if (!validChannels.includes(channel)) {
+      throw new Error(`Invalid channel: ${channel}`);
+    }
+    return await ipcRenderer.invoke(channel, ...args);
   },
-  send: (channel, ...args) => {
-    ipcRenderer.send(channel, ...args)
-  },
-  on: (channel, func) => {
-    ipcRenderer.on(channel, (_, ...args) => func(...args))
-  },
-  off: (channel, func) => {
-    ipcRenderer.removeListener(channel, func)
-  },
-  storage: {
-    testConnection: async (config) => {
-      // Ensure we're sending a plain object
-      const plainConfig = {
-        type: config.type,
-        ...(config.type === 'sqlite' 
-          ? { file: config.file }
-          : {
-              host: config.host,
-              port: config.port,
-              database: config.database,
-              username: config.username,
-              password: config.password,
-              ssl: config.ssl
-            })
-      };
 
-      const result = await ipcRenderer.invoke('storage.test-connection', plainConfig);
-      
-      return result;
-    },
-    saveConnection: (data) => ipcRenderer.invoke('storage.save-connection', data),
-    listConnections: () => ipcRenderer.invoke('storage.list-connections'),
-    deleteConnection: (id) => ipcRenderer.invoke('storage.delete-connection', id),
-    saveFlow: (data) => ipcRenderer.invoke('storage.save-flow', data),
-    openFlow: (id) => ipcRenderer.invoke('storage.open-flow', id),
-    saveEnv: (data) => ipcRenderer.invoke('storage.save-env', data),
-    openEnv: (id) => ipcRenderer.invoke('storage.open-env', id),
-    listEnv: () => ipcRenderer.invoke('storage.list-env'),
-    saveIntegration: (data) => ipcRenderer.invoke('storage.save-integration', data),
-    getIntegration: (id) => ipcRenderer.invoke('storage.get-integration', id),
-    listIntegrations: () => ipcRenderer.invoke('storage.list-integrations'),
-    saveNodeTemplate: async (template) => {
-      console.log('Preload: Saving node template:', template);
-      return await ipcRenderer.invoke('storage.save-node-template', template);
-    },
-    listNodeTemplates: async () => {
-      const result = await ipcRenderer.invoke('storage.list-node-templates');
-      return result;
-    },
-    deleteNodeTemplate: async (templateId) => {
-      console.log('Preload: Deleting node template:', templateId);
-      return await ipcRenderer.invoke('storage.delete-node-template', templateId);
+  // Event handling
+  on: (channel, func) => {
+    if (validChannels.includes(channel)) {
+      ipcRenderer.on(channel, (_, ...args) => func(...args));
     }
   },
-  dialog: {
-    openFile: (options) => ipcRenderer.invoke('dialog.open-file', options),
-    saveFile: (options) => ipcRenderer.invoke('dialog.save-file', options)
+  
+  off: (channel, func) => {
+    if (validChannels.includes(channel)) {
+      ipcRenderer.removeListener(channel, func);
+    }
   },
+
+  // Grouped API endpoints
+  connection: {
+    test: async (config) => {
+      console.log('Testing connection:', { ...config, password: '[REDACTED]' });
+      return await api.invoke('connection:test', validateObject(config));
+    },
+    save: (data) => api.invoke('connection:save', validateObject(data)),
+    list: () => api.invoke('connection:list'),
+    delete: (id) => api.invoke('connection:delete', validateId(id))
+  },
+
+  flow: {
+    save: (data) => api.invoke('flow:save', validateObject(data)),
+    get: (id) => api.invoke('flow:get', validateId(id)),
+    list: () => api.invoke('flow:list'),
+    delete: (id) => api.invoke('flow:delete', validateId(id))
+  },
+
+  env: {
+    save: (data) => api.invoke('env:save', validateObject(data)),
+    get: (id) => api.invoke('env:get', validateId(id)),
+    list: () => api.invoke('env:list')
+  },
+
+  integration: {
+    save: (data) => api.invoke('integration:save', validateObject(data)),
+    get: (id) => api.invoke('integration:get', validateId(id)),
+    list: () => api.invoke('integration:list'),
+    delete: (id) => api.invoke('integration:delete', validateId(id))
+  },
+
+  nodeTemplate: {
+    save: async (template) => {
+      console.log('Saving node template:', template);
+      return await api.invoke('node-template:save', validateObject(template));
+    },
+    list: () => api.invoke('node-template:list'),
+    delete: (id) => api.invoke('node-template:delete', validateId(id))
+  },
+
+  dialog: {
+    openFile: (options) => api.invoke('dialog:open', options),
+    saveFile: (options) => api.invoke('dialog:save', options)
+  },
+
   database: {
     executeQuery: (connectionId, query, parameters) => 
-      ipcRenderer.invoke('database.execute-query', connectionId, query, parameters)
+      api.invoke('database:execute', validateId(connectionId), query, parameters)
   },
+
   dashboard: {
-    save: (data) => ipcRenderer.invoke('dashboard.save', data),
-    list: () => ipcRenderer.invoke('dashboard.list'),
-    delete: (id) => ipcRenderer.invoke('dashboard.delete', id),
-    get: (id) => ipcRenderer.invoke('dashboard.get', id)
+    save: (data) => api.invoke('dashboard:save', validateObject(data)),
+    list: () => api.invoke('dashboard:list'),
+    delete: (id) => api.invoke('dashboard:delete', validateId(id)),
+    get: (id) => api.invoke('dashboard:get', validateId(id))
   },
+
   nodes: {
     database: {
       query: (connectionId, query, parameters) => 
-        ipcRenderer.invoke('nodes.database.query', connectionId, query, parameters)
+        api.invoke('nodes:database:query', validateId(connectionId), query, parameters)
     },
     http: {
-      request: (config) => ipcRenderer.invoke('nodes.http.request', config)
+      request: (config) => api.invoke('nodes:http:request', validateObject(config))
     }
-  }
-}
+  },
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
+  auth: {
+    checkSetup: () => api.invoke('auth:check-setup'),
+    setup: async (setupData) => {
+      console.log('Setup:', setupData);
+      return await api.invoke('auth:setup', validateObject(setupData));
+    },
+    login: (credentials) => api.invoke('auth:login', validateObject(credentials))
+  }
+};
+
+// Expose APIs based on context isolation
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('electron', electronAPI);
+    contextBridge.exposeInMainWorld('api', api);
   } catch (error) {
-    console.error(error)
+    console.error(error);
   }
 } else {
-  window.electron = electronAPI
-  window.api = api
+  window.electron = electronAPI;
+  window.api = api;
 }
-
-// Use a more unique namespace to avoid conflicts
-contextBridge.exposeInMainWorld(
-  'electronAPI',
-  {
-    // Command operations
-    executeCommand: (command, options) => 
-      ipcRenderer.invoke('nodes.command.execute', command, options),
-
-    // File operations
-    saveFile: (path, content) => 
-      ipcRenderer.invoke('nodes.file.save', path, content),
-    openFile: (path) => 
-      ipcRenderer.invoke('nodes.file.open', path),
-
-    // HTTP operations
-    httpRequest: (config) => 
-      ipcRenderer.invoke('nodes.http.request', config),
-
-    // Flow storage operations
-    saveFlow: (flowData) => 
-      ipcRenderer.invoke('storage.save-flow', flowData),
-    openFlow: (flowId) => 
-      ipcRenderer.invoke('storage.open-flow', flowId),
-    listFlows: () => 
-      ipcRenderer.invoke('storage.list-flows'),
-    deleteFlow: (flowId) => 
-      ipcRenderer.invoke('storage.delete-flow', flowId),
-
-    // Connection operations
-    saveConnection: (connectionData) => 
-      ipcRenderer.invoke('storage.save-connection', connectionData),
-    listConnections: () => 
-      ipcRenderer.invoke('storage.list-connections'),
-    deleteConnection: (connectionId) => 
-      ipcRenderer.invoke('storage.delete-connection', connectionId),
-    testConnection: (connectionData) => 
-      ipcRenderer.invoke('storage.test-connection', connectionData),
-
-    // Integration operations
-    saveIntegration: (data) => 
-      ipcRenderer.invoke('storage.save-integration', data),
-    getIntegration: (id) => 
-      ipcRenderer.invoke('storage.get-integration', id),
-    listIntegrations: () => 
-      ipcRenderer.invoke('storage.list-integrations'),
-    deleteIntegration: (id) => 
-      ipcRenderer.invoke('storage.delete-integration', id),
-
-    // Dashboard operations with validation
-    listDashboards: () => {
-      const result = ipcRenderer.invoke('dashboard.list');
-      return result;
-    },
-    saveDashboard: (data) => {
-      if (!data || typeof data !== 'object') {
-        throw new Error('Invalid data format');
-      }
-      return ipcRenderer.invoke('dashboard.save', data);
-    },
-    deleteDashboard: (id) => {
-      if (typeof id !== 'string' || !/^[a-zA-Z0-9-_]+$/.test(id)) {
-        throw new Error('Invalid dashboard ID');
-      }
-      return ipcRenderer.invoke('dashboard.delete', id);
-    },
-    getDashboard: (id) => {
-      if (typeof id !== 'string' || !/^[a-zA-Z0-9-_]+$/.test(id)) {
-        throw new Error('Invalid dashboard ID');
-      }
-      return ipcRenderer.invoke('dashboard.get', id);
-    }
-  }
-);

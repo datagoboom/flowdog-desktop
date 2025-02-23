@@ -2,7 +2,7 @@ import { memo, useState, useEffect, useCallback } from 'react';import { RefreshC
 import { Body2 } from '../../../common/Typography';
 import Input from '../../../common/Input';
 import Select from '../../../common/Select';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 
 const ITERATOR_MODES = [
   { value: 'input', label: 'Input Iteration' },
@@ -18,7 +18,7 @@ const DELIMITER_OPTIONS = [
 ];
 
 const IteratorNodeConfig = memo(({ node }) => {
-  const { updateNodeData, lastInput } = useDiagram();
+  const { updateNodeData, lastInput } = useFlow();
   const [arrayPath, setArrayPath] = useState(node.data?.arrayPath || '');
   const [customList, setCustomList] = useState(node.data?.rawText || '');
   const [previewItems, setPreviewItems] = useState([]);

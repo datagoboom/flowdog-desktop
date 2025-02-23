@@ -25,16 +25,29 @@ const Routes = () => {
   };
 
   // Create auth routes wrapper
-  const AuthRoute = ({ children }) => {
+  const AuthRoute = ({ children, isSetupRoute }) => {
+    // Always allow access to setup if it's not complete
+    if (!isSetupComplete && isSetupRoute) {
+      return children;
+    }
+
+    // Redirect to setup if not complete and trying to access login
+    if (!isSetupComplete && !isSetupRoute) {
+      return <Navigate to="/setup" replace />;
+    }
+
+    // Redirect to login if setup is complete and not authenticated
+    if (isSetupComplete && !isAuthenticated && !isSetupRoute) {
+      return children;
+    }
+
+    // Redirect to home if authenticated
     if (isAuthenticated) {
       return <Navigate to="/" replace />;
     }
 
-    if (!isSetupComplete && window.location.pathname !== '/setup') {
-      return <Navigate to="/setup" replace />;
-    }
-
-    if (isSetupComplete && window.location.pathname === '/setup') {
+    // Redirect to login if setup is complete but trying to access setup
+    if (isSetupComplete && isSetupRoute) {
       return <Navigate to="/login" replace />;
     }
 
@@ -71,7 +84,7 @@ const Routes = () => {
     {
       path: 'login',
       element: (
-        <AuthRoute>
+        <AuthRoute isSetupRoute={false}>
           <Login />
         </AuthRoute>
       ),
@@ -79,7 +92,7 @@ const Routes = () => {
     {
       path: 'setup',
       element: (
-        <AuthRoute>
+        <AuthRoute isSetupRoute={true}>
           <Setup />
         </AuthRoute>
       ),

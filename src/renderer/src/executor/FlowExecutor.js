@@ -21,7 +21,7 @@ import CollectorNode from './basic/CollectorNode';
 const jq = new JQParser();
 
 export default class FlowExecutor {
-  constructor(nodes, edges, addToHistory, addLog, setExecutingNodeIds, updateNodeData, setLastOutput, setLastInput, setEnvironmentVariable, environment, httpRequest) {
+  constructor(nodes, edges, addToHistory, addLog, setExecutingNodeIds, updateNodeData, setLastOutput, setLastInput, setEnvironmentVariable, environment, httpRequest, decrypt) {
     this.nodes = nodes;
     this.edges = edges;
     this.addAction = addToHistory;
@@ -37,7 +37,7 @@ export default class FlowExecutor {
     this.lastInput = null;
     this.stepDelay = 300;
     this.window = window;
-    
+    this.decrypt = decrypt;
     // Iterator state
     this.iteratorState = new Map(); // Map of nodeId -> { currentIndex, items }
     // Initialize executingNodes Set
@@ -74,7 +74,8 @@ export default class FlowExecutor {
       this.setEnvironmentVariable,
       this.localEnvironment,
       (config) => httpRequest(config),
-      this.updateNodeData
+      this.updateNodeData,
+      (apiKey) => decrypt(apiKey)
     );
     this.textDisplayNode = new TextDisplayNode(
       this.getEnvVar.bind(this),

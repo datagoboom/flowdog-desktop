@@ -1,4 +1,8 @@
-import database from '../services/databaseService'
+import { Client } from 'pg'
+import mysql from 'mysql2/promise'
+import sqlite3 from 'sqlite3'
+import { open } from 'sqlite'
+import database from '../services/database'
 import { Sequelize, QueryTypes } from 'sequelize'
 
 // Helper to safely escape values based on their type
@@ -44,7 +48,7 @@ function getQueryType(query) {
 }
 
 export const databaseHandlers = {
-  'connection:test': async (_, config) => {
+  'storage.test-connection': async (event, config) => {
     console.log('Testing connection with config:', {
       ...config,
       password: config.password ? '[REDACTED]' : undefined
@@ -79,9 +83,12 @@ export const databaseHandlers = {
     }
   },
 
-  'connection:save': async (_, connectionData) => {
+  'storage.save-connection': async (connectionData) => {
     try {
       await database.saveConnection(connectionData)
+
+      await database.saveConnection(connectionData)
+      return { success: true }
       return { success: true }
     } catch (error) {
       console.error('Failed to save connection:', error)
@@ -92,7 +99,7 @@ export const databaseHandlers = {
     }
   },
 
-  'connection:list': async () => {
+  'storage.list-connections': async () => {
     try {
       const connections = await database.listConnections()
       return { 
@@ -107,7 +114,7 @@ export const databaseHandlers = {
     }
   },
 
-  'connection:delete': async (_, connectionId) => {
+  'storage.delete-connection': async (connectionId) => {
     try {
       await database.deleteConnection(connectionId)
       return { success: true }

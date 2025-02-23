@@ -3,7 +3,7 @@ import { getBezierPath, getStraightPath, getSmoothStepPath, getSimpleBezierPath 
 import PropTypes from 'prop-types';
 import { cn } from '../../utils';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useDiagram } from '../../contexts/DiagramContext';
+import { useFlow } from '../../contexts/FlowContext';
 
 const DiagramEdge = memo(({
   id,
@@ -16,7 +16,7 @@ const DiagramEdge = memo(({
   style = {},
   markerEnd
 }) => {
-  const { isExecuting, edgeType } = useDiagram();
+  const { isExecuting, edgeType } = useFlow();
   const { isDark } = useTheme();
 
   // Get the path based on the edge type

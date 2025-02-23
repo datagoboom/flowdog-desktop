@@ -1,6 +1,6 @@
 import { memo, useState, useMemo, useEffect } from 'react';
 import { Plus, X } from 'lucide-react';
-import { useDiagram } from '../../../../contexts/DiagramContext';
+import { useFlow } from '../../../../contexts/FlowContext';
 import { useApi } from '../../../../contexts/ApiContext';
 import { Body2, Caption } from '../../../common/Typography';
 import Button from '../../../common/Button';
@@ -37,7 +37,7 @@ const ParameterRow = memo(({ parameter, onUpdate, onDelete }) => {
 });
 
 const DatabaseQueryNodeConfig = memo(({ node }) => {
-  const { updateNodeData, lastOutput } = useDiagram();
+  const { updateNodeData, lastOutput } = useFlow();
   const api = useApi();
   const [isExpanded, setIsExpanded] = useState(false);
   const [connections, setConnections] = useState([]);
