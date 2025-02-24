@@ -1,10 +1,11 @@
-import { memo, useState } from 'react';
-import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
+import { memo, useState, useEffect } from 'react';
+import { ChevronDown, ChevronRight, Plus, X, Save } from 'lucide-react';
 import { useFlow } from '../../../../contexts/FlowContext';
 import { Body1, Body2 } from '../../../common/Typography';
 import { cn } from '../../../../utils';
 import Input from '../../../common/Input';
 import Button from '../../../common/Button';
+import Select from '../../../common/Select';
 
 // Properties to exclude from the debug view
 const EXCLUDED_PROPS = new Set([
@@ -121,25 +122,42 @@ const EnvironmentVariableRow = memo(({ name, value, onChange, onDelete }) => {
 });
 
 const DebugPanel = memo(() => {
-  const { nodes, edges, environment, setEnvironmentVariable } = useFlow();
-  const [variables, setVariables] = useState(
-    Object.entries(environment.variables || {}).map(([name, value]) => ({ name, value }))
-  );
+  const { 
+    nodes, 
+    edges, 
+    environment, 
+    environments,
+    setEnvironmentVariable, 
+    createEnvironment,
+    switchEnvironment,
+    saveEnvironment,
+    deleteEnvironment 
+  } = useFlow();
+  
+  const [variables, setVariables] = useState([]);
+  const [newEnvName, setNewEnvName] = useState('');
+  const [showNewEnvInput, setShowNewEnvInput] = useState(false);
+
+  // Update variables when environment changes
+  useEffect(() => {
+    if (environment) {
+      setVariables(
+        Object.entries(environment.variables || {}).map(([name, value]) => ({ name, value }))
+      );
+    }
+  }, [environment]);
 
   const handleVariableChange = (index, field, value) => {
     const newVariables = [...variables];
     const variable = newVariables[index];
     
-    // If changing name, we need to delete old variable and add new one
     if (field === 'name' && variable.name) {
       setEnvironmentVariable(variable.name, undefined); // Delete old variable
     }
     
-    // Update the variable in our state
     newVariables[index] = { ...variable, [field]: value };
     setVariables(newVariables);
     
-    // Update the environment if we have both name and value
     if (newVariables[index].name && newVariables[index].value !== undefined) {
       setEnvironmentVariable(newVariables[index].name, newVariables[index].value);
     }
@@ -152,10 +170,17 @@ const DebugPanel = memo(() => {
   const handleDeleteVariable = (index) => {
     const variable = variables[index];
     if (variable.name) {
-      setEnvironmentVariable(variable.name, undefined); // Delete from environment
+      setEnvironmentVariable(variable.name, undefined);
     }
-    const newVariables = variables.filter((_, i) => i !== index);
-    setVariables(newVariables);
+    setVariables(variables.filter((_, i) => i !== index));
+  };
+
+  const handleCreateEnvironment = () => {
+    if (newEnvName.trim()) {
+      createEnvironment(newEnvName.trim());
+      setNewEnvName('');
+      setShowNewEnvInput(false);
+    }
   };
 
   return (
@@ -163,7 +188,7 @@ const DebugPanel = memo(() => {
       <Body1 className="font-medium">Debug Panel</Body1>
       
       {/* Flow Structure Section */}
-      <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-sm font-mono h-[40vh] overflow-y-auto">
+      <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-sm font-mono h-[30vh] overflow-y-auto">
         <Body2 className="font-medium mb-2 border-b border-slate-200 dark:border-slate-700 pb-2">
           Flow Structure
         </Body2>
@@ -175,20 +200,73 @@ const DebugPanel = memo(() => {
         </div>
       </div>
 
-      {/* Environment Variables Section */}
-      <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-sm h-[40vh] overflow-y-auto">
+      {/* Environment Management Section */}
+      <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-sm h-[50vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
           <Body2 className="font-medium">Environment Variables</Body2>
-          <Button
-            variant="light"
-            color="green"
-            size="sm"
-            onClick={handleAddVariable}
-            startIcon={<Plus size={16} />}
-          >
-            Add Variable
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select
+              value={environment?.id || ''}
+              onChange={(e) => switchEnvironment(e.target.value)}
+              className="w-48"
+            >
+              {environments.map(env => (
+                <option key={env.id} value={env.id}>{env.name}</option>
+              ))}
+            </Select>
+            <Button
+              variant="light"
+              color="green"
+              size="sm"
+              onClick={() => setShowNewEnvInput(true)}
+              startIcon={<Plus size={16} />}
+            >
+              New
+            </Button>
+            <Button
+              variant="light"
+              color="blue"
+              size="sm"
+              onClick={() => saveEnvironment()}
+              startIcon={<Save size={16} />}
+            >
+              Save
+            </Button>
+          </div>
         </div>
+
+        {showNewEnvInput && (
+          <div className="flex items-center gap-2 mb-4">
+            <Input
+              value={newEnvName}
+              onChange={(e) => setNewEnvName(e.target.value)}
+              placeholder="Environment name"
+              variant="filled"
+              className="flex-1"
+              onKeyPress={(e) => e.key === 'Enter' && handleCreateEnvironment()}
+            />
+            <Button
+              variant="filled"
+              color="green"
+              size="sm"
+              onClick={handleCreateEnvironment}
+            >
+              Create
+            </Button>
+            <Button
+              variant="text"
+              color="red"
+              size="sm"
+              onClick={() => {
+                setNewEnvName('');
+                setShowNewEnvInput(false);
+              }}
+            >
+              <X size={16} />
+            </Button>
+          </div>
+        )}
+
         <div className="space-y-2">
           {variables.map((variable, index) => (
             <EnvironmentVariableRow
@@ -199,11 +277,16 @@ const DebugPanel = memo(() => {
               onDelete={() => handleDeleteVariable(index)}
             />
           ))}
-          {variables.length === 0 && (
-            <div className="text-center p-4 text-slate-500">
-              No environment variables set
-            </div>
-          )}
+          <Button
+            variant="light"
+            color="blue"
+            size="sm"
+            onClick={handleAddVariable}
+            startIcon={<Plus size={16} />}
+            className="w-full"
+          >
+            Add Variable
+          </Button>
         </div>
       </div>
     </div>

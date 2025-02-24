@@ -208,7 +208,7 @@ const Settings = () => {
                         variant="light" 
                         color="red"
                         onClick={async () => {
-                          const result = await api.storage.deleteConnection(connection.id);
+                          const result = await api.connection.delete(connection.id);
                           if (result.success) {
                             setConnections(prev => prev.filter(c => c.id !== connection.id));
                           }

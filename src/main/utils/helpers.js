@@ -1,6 +1,6 @@
 // these are helper functions that are used in the handlers and other parts of the app
 
-exportconst responder = (success, data, error = null, sourceId = null) => {
+export const responder = (success, data, error = null, sourceId = null) => {
     // If data is an object with status, headers, data structure, use it directly
     if (data && typeof data === 'object' && 'status' in data) {
       return {

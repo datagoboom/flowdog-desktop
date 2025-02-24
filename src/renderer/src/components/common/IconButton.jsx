@@ -16,7 +16,6 @@ const IconButton = forwardRef(({
 
   const variants = {
     filled: `
-      ${isDark ? 'bg-opacity-90' : 'bg-opacity-100'}
       hover:bg-opacity-80
       active:bg-opacity-70
       text-white
@@ -89,6 +88,11 @@ const IconButton = forwardRef(({
       base: 'yellow-500',
       hover: 'yellow-600',
       active: 'yellow-700',
+    },
+    slate: {
+      base: 'slate-800',
+      hover: 'slate-700',
+      active: 'slate-600',
     },
   };
 

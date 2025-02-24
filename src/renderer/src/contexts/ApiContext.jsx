@@ -1,19 +1,11 @@
 import React, { createContext, useContext, useCallback } from 'react';
 
-const ApiContext = createContext();
+const ApiContext = createContext(null);
 
 export function ApiProvider({ children }) {
   // Nodes API
   const executeCommand = useCallback(async (command, options) => {
     return await window.api.invoke('nodes:command:execute', command, options);
-  }, []);
-
-  const saveFile = useCallback(async (path, content) => {
-    return await window.api.invoke('nodes:file:save', path, content);
-  }, []);
-
-  const openFile = useCallback(async (path) => {
-    return await window.api.invoke('nodes:file:open', path);
   }, []);
 
   // Add httpRequest function
@@ -123,14 +115,76 @@ export function ApiProvider({ children }) {
     return await window.api.invoke('auth:login', credentials);
   }, []);
 
+  // User API
+  const getUserInfo = useCallback(async () => {
+    return await window.api.invoke('user:get-info');
+  }, []);
+
+  const updateUserInfo = useCallback(async (data) => {
+    return await window.api.invoke('user:update-info', data);
+  }, []);
+
+  const changeUserPassword = useCallback(async (data) => {
+    return await window.api.invoke('user:change-password', data);
+  }, []);
+
+  const getUserSettings = useCallback(async () => {
+    return await window.api.invoke('user:get-settings');
+  }, []);
+
+  const updateUserSettings = useCallback(async (config) => {
+    return await window.api.invoke('user:update-settings', config);
+  }, []);
+
+  // Environment API
+  const saveEnvironment = useCallback(async (data) => {
+    return await window.api.invoke('env:save', data);
+  }, []);
+
+  const getEnvironment = useCallback(async (id) => {
+    return await window.api.invoke('env:get', id);
+  }, []);
+
+  const listEnvironments = useCallback(async () => {
+    return await window.api.invoke('env:list');
+  }, []);
+
+  const deleteEnvironment = useCallback(async (id) => {
+    return await window.api.invoke('env:delete', id);
+  }, []);
+
+  const updateEnvironmentVariables = useCallback(async (id, variables) => {
+    return await window.api.invoke('env:save', {
+      id,
+      variables
+    });
+  }, []);
+
+  // File API
+  const saveFile = useCallback(async (path, content, options) => {
+    return await window.api.invoke('nodes:file:save', path, content, options);
+  }, []);
+
+  const openFile = useCallback(async (path) => {
+    return await window.api.invoke('nodes:file:open', path);
+  }, []);
+
+  const appendFile = useCallback(async (path, content, options) => {
+    return await window.api.invoke('nodes:file:append', path, content, options);
+  }, []);
+
+  const deleteFile = useCallback(async (path) => {
+    return await window.api.invoke('nodes:file:delete', path);
+  }, []);
+
+  const selectDirectory = useCallback(async (options) => {
+    return await window.api.invoke('nodes:file:select-directory', options);
+  }, []);
+
   const api = {
     nodes: {
       command: {
         execute: executeCommand
-      },
-      file: {
-        save: saveFile,
-        open: openFile
       },
       http: {
         request: httpRequest
@@ -169,6 +223,27 @@ export function ApiProvider({ children }) {
       checkSetup: checkSetup,
       setup: setup,
       login: login
+    },
+    user: {
+      getInfo: getUserInfo,
+      updateInfo: updateUserInfo,
+      changePassword: changeUserPassword,
+      getSettings: getUserSettings,
+      updateSettings: updateUserSettings
+    },
+    env: {
+      save: saveEnvironment,
+      get: getEnvironment,
+      list: listEnvironments,
+      delete: deleteEnvironment,
+      updateVariables: updateEnvironmentVariables
+    },
+    file: {
+      save: saveFile,
+      open: openFile,
+      append: appendFile,
+      delete: deleteFile,
+      selectDirectory: selectDirectory
     }
   };
 

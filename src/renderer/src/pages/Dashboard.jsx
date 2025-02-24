@@ -1,39 +1,36 @@
-import { useState, useEffect } from 'react';
-import { useApi } from '../contexts/ApiContext';
-import { Body1, H2, Caption } from '../components/common/Typography';
-import StatBox from '../components/common/StatBox';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plus } from 'lucide-react';
+import Button from '../components/common/Button';
+import FlowTable from '../components/dashboard/FlowTable';
+import { Body1, H4 } from '../components/common/Typography';
 
 const Dashboard = () => {
-  const api = useApi();
-  const [flows, setFlows] = useState([]);
-
-  useEffect(() => {
-    api.flow.list().then(response => {
-      console.log('Dashboard - Flows: ', response);
-      if (response.success) {
-        setFlows(response.data || []);
-      } else {
-        console.error('Failed to load flows:', response.error);
-        setFlows([]);
-      }
-    });
-  }, [api]);
+  const navigate = useNavigate();
 
   return (
-    <div className="flex h-[100vh] w-full flex-col border-l border-r border-slate-200 dark:border-slate-700">
-        <div className="flex flex-row min-h-[150px] p-4 border-b border-slate-200 dark:border-slate-700">
-            <StatBox 
-                value={flows.length}
-                caption="Total Flows"
-                captionAlign="center"
-                className="rounded-lg"
-            />
+    <div className="p-6 space-y-6">
+      {/* Header Section */}
+      <div className="flex items-center justify-between">
+        <div>
+          <H4>Dashboard</H4>
+          <Body1 className="text-slate-500 dark:text-slate-400">
+            Manage and monitor your flows
+          </Body1>
         </div>
-        <div className="flex-1 p-4">
-        
-        </div>
+        <Button
+          variant="filled"
+          color="blue"
+          size="md"
+          startIcon={<Plus className="w-4 h-4" />}
+          onClick={() => navigate('/flows/new')}
+        >
+          New Flow
+        </Button>
+      </div>
+        <FlowTable />
     </div>
   );
-}
+};
 
 export default Dashboard;

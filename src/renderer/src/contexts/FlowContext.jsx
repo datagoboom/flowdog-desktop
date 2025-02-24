@@ -10,6 +10,7 @@ import { findPreviousNodes } from '../utils/graphUtils';
 import { useLogger } from './LoggerContext';
 import { useApi } from './ApiContext';
 import { useAuth } from './AuthContext';
+import { v4 as uuidv4 } from 'uuid';
 const STORAGE_KEY = 'workflow_data';
 
 // Add this constant for state properties we want to persist
@@ -41,7 +42,6 @@ export const useFlow = () => {
 };
 
 export const FlowProvider = ({ children }) => {
-  // Get the httpRequest function from the correct path in the API
   const api = useApi();
   const httpRequest = api.nodes.http.request;  // Update this path based on your API structure
   const { decrypt } = useAuth();
@@ -83,6 +83,113 @@ export const FlowProvider = ({ children }) => {
   // Add redo stack
   const [redoStack, setRedoStack] = useState([]);
 
+  const [environments, setEnvironments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load environments on mount
+  useEffect(() => {
+    loadEnvironments();
+  }, []);
+
+  const loadEnvironments = async () => {
+    try {
+      setLoading(true);
+      const response = await api.env.list();
+      if (response.success) {
+        setEnvironments(response.data);
+        // If we have environments but none selected, select the first one
+        if (response.data.length > 0 && !environment) {
+          const firstEnv = response.data[0];
+          setEnvironment(firstEnv);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load environments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createEnvironment = useCallback(async (name) => {
+    try {
+      const newEnv = {
+        id: uuidv4(),
+        name,
+        variables: {}
+      };
+
+      const response = await api.env.save(newEnv);
+      if (response.success) {
+        setEnvironments(prev => [...prev, response.data]);
+        setEnvironment(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to create environment:', error);
+    }
+  }, [api.env]);
+
+  const switchEnvironment = useCallback(async (envId) => {
+    try {
+      const response = await api.env.get(envId);
+      if (response.success) {
+        setEnvironment(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to switch environment:', error);
+    }
+  }, [api.env]);
+
+  const saveEnvironment = useCallback(async () => {
+    if (!environment) return;
+
+    try {
+      const response = await api.env.save(environment);
+      if (response.success) {
+        // Update environments list with the updated environment
+        setEnvironments(prev => 
+          prev.map(env => 
+            env.id === environment.id ? response.data : env
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Failed to save environment:', error);
+    }
+  }, [environment, api.env]);
+
+  const deleteEnvironment = useCallback(async (envId) => {
+    try {
+      const response = await api.env.delete(envId);
+      if (response.success) {
+        setEnvironments(prev => prev.filter(env => env.id !== envId));
+        if (environment?.id === envId) {
+          const remainingEnvs = environments.filter(env => env.id !== envId);
+          setEnvironment(remainingEnvs.length > 0 ? remainingEnvs[0] : null);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete environment:', error);
+    }
+  }, [environment, environments, api.env]);
+
+  const setEnvironmentVariable = useCallback((name, value) => {
+    if (!environment) return;
+
+    setEnvironment(prev => {
+      const newVariables = { ...prev.variables };
+      if (value === undefined) {
+        delete newVariables[name];
+      } else {
+        newVariables[name] = value;
+      }
+
+      return {
+        ...prev,
+        variables: newVariables
+      };
+    });
+  }, [environment]);
+
   useEffect(() => {
     if (!initialLoadComplete || !storage) return;
   
@@ -102,53 +209,6 @@ export const FlowProvider = ({ children }) => {
       saveState(storage, stateToSave);
     }
   }, [nodes, edges, nodeCounter, nodeSequence, initialLoadComplete, storage]);
-
-  // Update environment variable and persist to localStorage
-  const setEnvironmentVariable = useCallback((name, value) => {
-    setEnvironment(prev => {
-      const newEnv = {
-        ...prev,
-        variables: {
-          ...prev.variables,
-          [name]: value
-        }
-      };
-
-      // Remove the variable if value is undefined
-      if (value === undefined) {
-        delete newEnv.variables[name];
-      }
-
-      // Save to localStorage
-      localStorage.setItem(LOCAL_STORAGE_KEYS.ENVIRONMENT, JSON.stringify(newEnv));
-      return newEnv;
-    });
-  }, []);
-
-  const removeEnvironmentVariable = useCallback((key) => {
-    setEnvironment(prev => {
-      const newVars = { ...prev.variables };
-      delete newVars[key];
-      return {
-        ...prev,
-        variables: newVars
-      };
-    });
-  }, []);
-
-  const clearEnvironment = useCallback(() => {
-    setEnvironment({
-      variables: {},
-      description: 'Default Environment'
-    });
-  }, []);
-
-  const setEnvironmentDescription = useCallback((description) => {
-    setEnvironment(prev => ({
-      ...prev,
-      description
-    }));
-  }, []);
 
   // Save nodes and edges to localStorage whenever they change
   useEffect(() => {
@@ -684,9 +744,9 @@ export const FlowProvider = ({ children }) => {
     setShowMinimap,
     environment,
     setEnvironmentVariable,
-    removeEnvironmentVariable,
-    clearEnvironment,
-    setEnvironmentDescription,
+    removeEnvironmentVariable: deleteEnvironment,
+    clearEnvironment: deleteEnvironment,
+    setEnvironmentDescription: createEnvironment,
     lastInput,
     lastOutput,
     setLastOutput,
@@ -701,6 +761,12 @@ export const FlowProvider = ({ children }) => {
     getNodeOutput,
     undoHistory,
     redoHistory,
+    environments,
+    loading,
+    createEnvironment,
+    switchEnvironment,
+    saveEnvironment,
+    deleteEnvironment,
   }), [
     nodes,
     edges,
@@ -741,9 +807,7 @@ export const FlowProvider = ({ children }) => {
     showMinimap,
     environment,
     setEnvironmentVariable,
-    removeEnvironmentVariable,
-    clearEnvironment,
-    setEnvironmentDescription,
+    deleteEnvironment,
     lastInput,
     lastOutput,
     setLastOutput,
@@ -758,6 +822,11 @@ export const FlowProvider = ({ children }) => {
     getNodeOutput,
     undoHistory,
     redoHistory,
+    environments,
+    loading,
+    createEnvironment,
+    switchEnvironment,
+    saveEnvironment,
   ]);
 
   return (

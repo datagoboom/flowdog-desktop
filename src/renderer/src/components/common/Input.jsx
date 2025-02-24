@@ -32,6 +32,11 @@ const Input = forwardRef(({
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
 
+  // Remove any unrecognized props that might be passed down
+  const inputProps = { ...props };
+  delete inputProps.leftIcon;  // Remove leftIcon prop
+  delete inputProps.rightIcon; // Remove rightIcon prop
+
   // Handle clicks outside of input and dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -157,7 +162,7 @@ const Input = forwardRef(({
             )}
             onFocus={() => setIsFocused(true)}
             onKeyDown={handleKeyDown}
-            {...props}
+            {...inputProps}  // Use filtered props
           />
           {EndIcon && (
             <div className="absolute right-3">
@@ -237,8 +242,8 @@ Input.propTypes = {
   suggestions: PropTypes.array,
   onSuggestionSelect: PropTypes.func,
   showSuggestions: PropTypes.bool,
-  startIcon: PropTypes.node,
-  endIcon: PropTypes.node,
+  startIcon: PropTypes.elementType,
+  endIcon: PropTypes.elementType,
   onClear: PropTypes.func,
 };
 

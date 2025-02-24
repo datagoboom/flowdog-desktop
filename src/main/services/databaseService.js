@@ -260,6 +260,29 @@ class Database {
       ]
     });
 
+    this.models.UserSettings = this.sequelize.define('UserSettings', {
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true
+      },
+      userId: {
+        type: DataTypes.UUID,
+        allowNull: false
+      },
+      config: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+        get() {
+          const rawValue = this.getDataValue('config');
+          return rawValue ? JSON.parse(rawValue) : {};
+        },
+        set(value) {
+          this.setDataValue('config', JSON.stringify(value));
+        }
+      }
+    });
+
     // Define Integration model
     this.models.Integration = this.sequelize.define('Integration', {
       id: {
@@ -320,8 +343,59 @@ class Database {
       }
     });
 
+    this.models.ExecutionHistory = this.sequelize.define('ExecutionHistory', {
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true
+      }, 
+      flowId: {
+        type: DataTypes.UUID,
+        allowNull: false
+      }, 
+      environmentId: {
+        type: DataTypes.UUID,
+        allowNull: false
+      }, 
+      status: {
+        type: DataTypes.STRING,
+        allowNull: false
+      }, 
+      start: {
+        type: DataTypes.DATE,
+        allowNull: false
+      }, 
+      end: {
+        type: DataTypes.DATE,
+        allowNull: true
+      }
+    });
+
+    // FlowInfo is metadata about a flow, used for api.flow.list() and other flow related queries
+    // makes it easier to query for flows by name, environment, etc.
+    this.models.FlowInfo = this.sequelize.define('FlowInfo', {
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true
+      }, 
+      flowId: {
+        type: DataTypes.UUID,
+        allowNull: false
+      },
+      name: {
+        type: DataTypes.STRING,
+        allowNull: false
+      },
+      environmentId: {
+        type: DataTypes.UUID,
+        allowNull: true
+      }
+    });
+
     console.log('Models defined successfully');
   }
+
 
   async firstRun(dbConfig) {
     console.log('Database firstRun - Starting with config:', {

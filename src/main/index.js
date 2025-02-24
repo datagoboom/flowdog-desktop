@@ -17,6 +17,7 @@ import { databaseHandlers } from './handlers/databaseHandlers'
 import { dialogHandlers } from './handlers/dialogHandlers'
 import { nodeHandlers } from './handlers/nodeHandlers'
 import { envHandlers } from './handlers/envHandlers'
+import { userHandlers } from './handlers/userHandlers'
 
 let mainWindow = null
 let tray = null
@@ -46,7 +47,8 @@ function registerHandlers() {
     ...databaseHandlers,
     ...dialogHandlers,
     ...nodeHandlers,
-    ...envHandlers
+    ...envHandlers,
+    ...userHandlers
   };
 
   Object.entries(handlers).forEach(([channel, handler]) => {
