@@ -5,7 +5,7 @@ export const userHandlers = {
   'user:get-info': async (event) => {
     try {
       const user = await database.models.User.findOne({
-        where: { id: event.user.id },
+        where: { id: currentUserId },
         attributes: ['id', 'username', 'firstName', 'lastName', 'avatar', 'createdAt', 'updatedAt']
       });
 
@@ -29,7 +29,7 @@ export const userHandlers = {
       const { firstName, lastName, avatar } = data;
       
       const user = await database.models.User.findOne({
-        where: { id: event.user.id }
+        where: { id: currentUserId }
       });
 
       if (!user) {
@@ -71,7 +71,7 @@ export const userHandlers = {
 
       // Verify current password
       const user = await database.models.User.findOne({
-        where: { id: event.user.id }
+        where: { id: currentUserId }
       });
 
       if (!user) {
@@ -105,12 +105,12 @@ export const userHandlers = {
   'user:get-settings': async (event) => {
     try {
       let settings = await database.models.UserSettings.findOne({
-        where: { userId: event.user.id }
+        where: { userId: currentUserId }
       });
 
       if (!settings) {
         settings = await database.models.UserSettings.create({
-          userId: event.user.id,
+          userId: currentUserId,
           config: {}
         });
       }
@@ -133,14 +133,14 @@ export const userHandlers = {
   'user:update-settings': async (event, config) => {
     try {
       let settings = await database.models.UserSettings.findOne({
-        where: { userId: event.user.id }
+        where: { userId: currentUserId }
       });
 
       if (settings) {
         await settings.update({ config });
       } else {
         settings = await database.models.UserSettings.create({
-          userId: event.user.id,
+          userId: currentUserId,
           config
         });
       }

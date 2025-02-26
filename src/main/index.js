@@ -14,13 +14,16 @@ import { nodeTemplateHandlers } from './handlers/nodeTemplateHandlers'
 import { dashboardHandlers } from './handlers/dashboardHandlers'
 import { authHandlers } from './handlers/authHandlers'
 import { databaseHandlers } from './handlers/databaseHandlers'
-import { dialogHandlers } from './handlers/dialogHandlers'
-import { nodeHandlers } from './handlers/nodeHandlers'
 import { envHandlers } from './handlers/envHandlers'
 import { userHandlers } from './handlers/userHandlers'
-
+import { executionHandlers } from './handlers/executionHandlers'
+import { httpHandlers } from './handlers/httpHandlers'
+import { fileHandlers } from './handlers/fileHandlers'
 let mainWindow = null
 let tray = null
+
+// Store the current user ID
+let currentUserId = null
 
 // Initialize storage directories
 async function initializeStorage() {
@@ -36,25 +39,60 @@ async function initializeStorage() {
   }
 }
 
-function registerHandlers() {
-  const handlers = {
+const setupIPC = () => {
+  // Create wrapped auth handlers
+  const wrappedAuthHandlers = {
+    'auth:login': async (event, credentials) => {
+      const response = await authHandlers['auth:login'](event, credentials)
+      if (response.success && response.user?.id) {
+        console.log('Setting currentUserId:', response.user.id)
+        currentUserId = response.user.id
+      }
+      return response
+    },
+    'auth:logout': async (event) => {
+      const response = await authHandlers['auth:logout'](event)
+      if (response.success) {
+        currentUserId = null
+      }
+      return response
+    }
+  }
+
+  // Register all non-auth handlers with user context
+  const allHandlers = {
     ...flowHandlers,
+    ...databaseHandlers,
+    ...httpHandlers,
     ...connectionHandlers,
     ...integrationHandlers,
     ...nodeTemplateHandlers,
     ...dashboardHandlers,
-    ...authHandlers,
-    ...databaseHandlers,
-    ...dialogHandlers,
-    ...nodeHandlers,
+    ...executionHandlers,
+    ...userHandlers,
     ...envHandlers,
-    ...userHandlers
-  };
+    ...httpHandlers,
+    ...fileHandlers,
+    // Include remaining auth handlers (except login/logout)
+    ...Object.entries(authHandlers)
+      .filter(([key]) => !['auth:login', 'auth:logout'].includes(key))
+      .reduce((acc, [key, handler]) => ({ ...acc, [key]: handler }), {})
+  }
 
-  Object.entries(handlers).forEach(([channel, handler]) => {
-    console.log(`Registering handler for channel: ${channel}`);
-    ipcMain.handle(channel, handler);
-  });
+  // Register wrapped auth handlers first
+  Object.entries(wrappedAuthHandlers).forEach(([channel, handler]) => {
+    console.log(`Registering auth handler for channel: ${channel}`)
+    ipcMain.handle(channel, handler)
+  })
+
+  // Register all other handlers with user context
+  Object.entries(allHandlers).forEach(([channel, handler]) => {
+    console.log(`Registering handler for channel: ${channel}`)
+    ipcMain.handle(channel, async (event, ...args) => {
+      event.user = { id: currentUserId }
+      return handler(event, ...args)
+    })
+  })
 }
 
 function createWindow() {
@@ -84,20 +122,20 @@ function createWindow() {
 
   // Restrict navigation to prevent phishing
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    const allowedOrigins = ['http://localhost:5173']; // Add your allowed origins
-    const parsedUrl = new URL(url);
+    const allowedOrigins = ['http://localhost:5173'] // Add your allowed origins
+    const parsedUrl = new URL(url)
     if (!allowedOrigins.includes(parsedUrl.origin)) {
-      event.preventDefault();
+      event.preventDefault()
     }
-  });
+  })
 
   // Safe external link handling
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https:') || url.startsWith('http:')) {
-      shell.openExternal(url);
+      shell.openExternal(url)
     }
-    return { action: 'deny' };
-  });
+    return { action: 'deny' }
+  })
 
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
@@ -134,7 +172,7 @@ app.whenReady().then(async () => {
     console.log('Storage directories initialized successfully')
 
     // Register IPC handlers
-    registerHandlers()
+    setupIPC()
     console.log('IPC handlers registered successfully')
 
     // Set app user model id for windows

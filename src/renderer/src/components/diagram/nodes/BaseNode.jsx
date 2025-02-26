@@ -134,7 +134,7 @@ const BaseNode = memo(({
             
             <div id="node-text-container" className="flex flex-col justify-center p-2 h-full">
               <Typography variant="caption" color="slate">{id || ''}</Typography>
-              <Typography variant="caption" color="yellow">{data?.name?.slice(0, 30) || ''}</Typography> 
+              <Typography variant="caption" className="text-aqua-400">{data?.name?.slice(0, 30) || ''}</Typography> 
               <Typography variant="caption" color="slate">{children}</Typography>
             </div>
             <div className={cn(

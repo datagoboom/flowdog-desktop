@@ -230,13 +230,14 @@ const DiagramPalette = memo(({ items = [] }) => {
     try {
       clearWorkflow();
       // Pass just the ID to openFlow
-      const loadedFlow = await api.flow.get(flow.id);
+      const loadedFlow = await api.flow.get(flow.dataValues.id);
+      console.log('loadedFlow', loadedFlow);
       
       if (loadedFlow.success) {
         // Set nodes and edges from the loaded flow
-        setNodes(loadedFlow.data.nodes || []);
-        setEdges(loadedFlow.data.edges || []);
-        localStorage.setItem('currentFlow', JSON.stringify(loadedFlow.data));
+        setNodes(loadedFlow.response.nodes || []);
+        setEdges(loadedFlow.response.edges || []);
+        localStorage.setItem('currentFlow', JSON.stringify(loadedFlow.response));
         setOpenModalVisible(false);
       }
     } catch (error) {
@@ -245,6 +246,7 @@ const DiagramPalette = memo(({ items = [] }) => {
   };
 
   const handleOpenFlow = async (flow) => {
+    console.log('handleOpenFlow', flow);
     if (nodes.length > 0) {
       setPendingAction({ type: 'open', flow });
       setConfirmDialogOpen(true);

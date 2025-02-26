@@ -51,18 +51,18 @@ export default class RSSNode {
       console.log('Input data:', inputData);
 
       const { url, maxItems = 10, sortBy = 'published', sortDirection = 'desc' } = data;
+
+      console.log('url', url);
       
-      if (!url) {
+      if (url === undefined) {
         return formatter.errorResponse('RSS Feed URL is required');
       }
 
-      // Build context from source nodes
       const context = sourceNodes?.reduce((acc, source) => ({
         ...acc,
         [source.id]: source.data
       }), {}) || {};
 
-      // Template the URL with better error handling
       let templatedUrl;
       try {
         templatedUrl = this.evaluateEnvTemplate(url, context);
@@ -72,20 +72,24 @@ export default class RSSNode {
       }
 
       try {
+        // Use new standardized http:request handler
+
+        console.log('templatedUrl', templatedUrl);
         const response = await this.httpRequest({
-          url: templatedUrl,
-          method: 'GET',
-          headers: {
-            'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-          }
-        });
+            url: templatedUrl,
+            method: 'GET',
+            headers: {
+              'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+          });
 
         if (!response.success) {
-          throw new Error(response.error?.message || 'Failed to fetch feed');
+          throw new Error(response.error || 'Failed to fetch feed');
         }
 
-        const feedContent = response.data.data;
+        console.log('response', response);
+        const feedContent = response.response.data;
         
         if (typeof feedContent !== 'string') {
           throw new Error('Invalid feed format: Expected XML string');

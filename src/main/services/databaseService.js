@@ -237,11 +237,11 @@ class Database {
           notEmpty: true
         }
       },
-      firstName: {
+      first_name: {
         type: DataTypes.STRING,
         allowNull: true
       },
-      lastName: {
+      last_name: {
         type: DataTypes.STRING,
         allowNull: true
       },
@@ -260,13 +260,13 @@ class Database {
       ]
     });
 
-    this.models.UserSettings = this.sequelize.define('UserSettings', {
+    this.models.UserSetting = this.sequelize.define('UserSetting', {
       id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
       },
-      userId: {
+      user_id: {
         type: DataTypes.UUID,
         allowNull: false
       },
@@ -343,53 +343,50 @@ class Database {
       }
     });
 
-    this.models.ExecutionHistory = this.sequelize.define('ExecutionHistory', {
+    this.models.Execution = this.sequelize.define('Execution', {
       id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
-      }, 
-      flowId: {
+      },
+      flow_id: {
         type: DataTypes.UUID,
         allowNull: false
-      }, 
-      environmentId: {
+      },
+      user_id: {
         type: DataTypes.UUID,
         allowNull: false
-      }, 
+      },
       status: {
         type: DataTypes.STRING,
         allowNull: false
-      }, 
-      start: {
-        type: DataTypes.DATE,
-        allowNull: false
-      }, 
-      end: {
-        type: DataTypes.DATE,
-        allowNull: true
-      }
+      },
+      scheduled_time: DataTypes.DATE,
+      start_time: DataTypes.DATE,
+      end_time: DataTypes.DATE,
+      environment_id: DataTypes.UUID,
+      error: DataTypes.TEXT,
+      trigger_type: DataTypes.STRING
     });
 
     // FlowInfo is metadata about a flow, used for api.flow.list() and other flow related queries
-    // makes it easier to query for flows by name, environment, etc.
     this.models.FlowInfo = this.sequelize.define('FlowInfo', {
       id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
-      }, 
-      flowId: {
-        type: DataTypes.UUID,
-        allowNull: false
       },
       name: {
         type: DataTypes.STRING,
         allowNull: false
       },
-      environmentId: {
+      environment_id: {
         type: DataTypes.UUID,
         allowNull: true
+      },
+      user_id: {
+        type: DataTypes.UUID,
+        allowNull: false
       }
     });
 
@@ -498,7 +495,7 @@ class Database {
   async saveFlow(flowData) {
     const { id, name, data } = flowData
     return await this.sequelize.query(
-      `INSERT OR REPLACE INTO flows (id, name, data, updated_at) 
+      `INSERT OR REPLACE INTO flows (id, name, data, updatedAt) 
        VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
       {
         replacements: [id, name, JSON.stringify(data)],
@@ -525,7 +522,7 @@ class Database {
   async saveEnv(envData) {
     const { id, name, variables } = envData
     return await this.sequelize.query(
-      `INSERT OR REPLACE INTO environments (id, name, variables, updated_at) 
+      `INSERT OR REPLACE INTO environments (id, name, variables, updatedAt) 
        VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
       {
         replacements: [id, name, JSON.stringify(variables)],
@@ -550,7 +547,7 @@ class Database {
 
   async listEnv() {
     const envs = await this.sequelize.query(
-      'SELECT id, name, created_at, updated_at FROM environments',
+      'SELECT id, name, created_at, updatedAt FROM environments',
       {
         type: this.sequelize.QueryTypes.SELECT
       }

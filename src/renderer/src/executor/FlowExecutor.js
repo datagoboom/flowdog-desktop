@@ -1,8 +1,3 @@
-import { findNextNodes } from '../utils/graphUtils';
-import xml from '../utils/xml';
-import regex from '../utils/regex';
-import Handlebars from 'handlebars';
-import formatter from '../utils/formatter';
 import JQParser from '../utils/jq';
 import HttpNode from './basic/HttpNode';
 import FormatNode from './basic/FormatNode';
@@ -21,7 +16,7 @@ import CollectorNode from './basic/CollectorNode';
 const jq = new JQParser();
 
 export default class FlowExecutor {
-  constructor(nodes, edges, addToHistory, addLog, setExecutingNodeIds, updateNodeData, setLastOutput, setLastInput, setEnvironmentVariable, environment, httpRequest, decrypt) {
+  constructor(nodes, edges, addToHistory, addLog, setExecutingNodeIds, updateNodeData, setLastOutput, setLastInput, setEnvironmentVariable, environment, httpRequest, databaseQuery, commandExecute, decrypt) {
     this.nodes = nodes;
     this.edges = edges;
     this.addAction = addToHistory;
@@ -36,7 +31,6 @@ export default class FlowExecutor {
     this.loggedNodes = new Set();
     this.lastInput = null;
     this.stepDelay = 300;
-    this.window = window;
     this.decrypt = decrypt;
     // Iterator state
     this.iteratorState = new Map(); // Map of nodeId -> { currentIndex, items }
@@ -51,7 +45,7 @@ export default class FlowExecutor {
       (config) => httpRequest(config)
     );
     this.formatNode = new FormatNode(this.updateNodeData);
-    this.fileNode = new FileNode(this.window);
+    this.fileNode = new FileNode();
     this.parserNode = new ParserNode();
     this.conditionalNode = new ConditionalNode(
       this.getEnvVar.bind(this),
@@ -60,8 +54,8 @@ export default class FlowExecutor {
     );
     this.iteratorNode = new IteratorNode(this.updateNodeData, this.getEnvVar.bind(this));
     this.testNode = new TestNode();
-    this.commandNode = new CommandNode();
-    this.databaseQueryNode = new DatabaseQueryNode();
+    this.commandNode = new CommandNode((cmd) => commandExecute(cmd));
+    this.databaseQueryNode = new DatabaseQueryNode((query) => databaseQuery(query));
     this.counterNode = new CounterNode(this.updateNodeData);
     this.rssNode = new RSSNode(
       this.getEnvVar.bind(this),

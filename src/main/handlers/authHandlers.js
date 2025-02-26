@@ -143,11 +143,8 @@ export const authHandlers = {
       }
 
       const result = await authService.login(credentials.username, credentials.password);
-      
-      console.log('Auth Handler - Login result:', {
-        success: result.success,
-        userId: result.success ? result.user?.id : null
-      });
+
+      console.log('Auth Handler - Login result:', result);
 
       return result;
     } catch (error) {
@@ -157,5 +154,9 @@ export const authHandlers = {
         error: error.message || 'Login failed'
       };
     }
+  },
+
+  'auth:logout': async (event) => {
+    return authService.logout();
   }
 };

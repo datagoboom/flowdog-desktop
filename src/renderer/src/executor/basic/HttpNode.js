@@ -131,9 +131,9 @@ export default class HttpNode {
       }
 
       const result = {
-        status: response.data.status,
-        headers: response.data.headers,
-        data: response.data.data
+        status: response.response.status,
+        headers: response.response.headers,
+        data: response.response.data
       };
 
       const formattedResult = formatter.standardResponse(true, result);

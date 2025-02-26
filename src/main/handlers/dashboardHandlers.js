@@ -33,7 +33,7 @@ export const dashboardHandlers = {
           })
       );
 
-      return responder(true, dashboards.sort((a, b) => b.updated_at - a.updated_at), null);
+      return responder(true, dashboards.sort((a, b) => b.updatedAt - a.updatedAt), null);
     } catch (error) {
       console.error('Failed to list dashboards:', error);
       return responder(false, null, error.message);
@@ -56,7 +56,7 @@ export const dashboardHandlers = {
       
       const dashboardData = {
         ...dashboard,
-        updated_at: Date.now()
+        updatedAt: Date.now()
       };
 
       await fs.writeFile(

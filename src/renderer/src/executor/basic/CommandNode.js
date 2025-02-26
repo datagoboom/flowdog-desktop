@@ -4,10 +4,8 @@ import JQParser from '../../utils/jq';
 const jq = new JQParser();
 
 export default class CommandNode {
-  constructor(getEnvVar, setEnvironmentVariable, localEnvironment) {
-    this.getEnvVar = getEnvVar;
-    this.setEnvironmentVariable = setEnvironmentVariable;
-    this.localEnvironment = localEnvironment || { variables: {} };
+  constructor(commandExecute) {
+    this.commandExecute = commandExecute;
   }
 
   evaluateTemplate(template, context) {
@@ -50,7 +48,7 @@ export default class CommandNode {
       const evaluatedCommand = this.evaluateTemplate(command, inputData);
       
       // Execute command through IPC
-      const result = await window.api.executeCommand(evaluatedCommand, {
+      const result = await this.commandExecute(evaluatedCommand, {
         workingDirectory,
         timeout,
         environmentVars

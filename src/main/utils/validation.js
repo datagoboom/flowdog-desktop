@@ -48,7 +48,7 @@ const dashboardSchema = z.object({
   description: z.string().optional(),
   panels: z.array(panelSchema).default([]),
   created_at: z.number(),
-  updated_at: z.number()
+  updatedAt: z.number()
 });
 
 export const validateDashboard = (data) => {

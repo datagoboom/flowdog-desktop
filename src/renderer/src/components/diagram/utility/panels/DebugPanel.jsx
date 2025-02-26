@@ -210,7 +210,7 @@ const DebugPanel = memo(() => {
               onChange={(e) => switchEnvironment(e.target.value)}
               className="w-48"
             >
-              {environments.map(env => (
+              {environments?.map(env => (
                 <option key={env.id} value={env.id}>{env.name}</option>
               ))}
             </Select>

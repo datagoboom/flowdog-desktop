@@ -3,19 +3,37 @@ import Modal from '../../common/Modal';
 import Input from '../../common/Input';
 import Button from '../../common/Button';
 import { Save } from 'lucide-react';
+import { useFlow } from '../../../contexts/FlowContext';
+import { useApi } from '../../../contexts/ApiContext';
 
-const SaveFlowModal = ({ isOpen, onClose, onSave }) => {
+const SaveFlowModal = ({ isOpen, onClose }) => {
+  const { nodes, edges } = useFlow();
+  const { flow } = useApi();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name.trim()) return;
-    onSave({
-      name: name.trim(),
-      description: description.trim(),
-      timestamp: Date.now()
-    });
-    onClose();
+    
+    try {
+      setSaving(true);
+      await flow.save({
+        name: name.trim(),
+        description: description.trim(),
+        nodes,
+        edges
+      });
+      
+      setName('');
+      setDescription('');
+      onClose();
+    } catch (error) {
+      console.error('Failed to save flow:', error);
+      // TODO: Add error handling/notification
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -49,6 +67,7 @@ const SaveFlowModal = ({ isOpen, onClose, onSave }) => {
           <Button
             variant="text"
             onClick={onClose}
+            disabled={saving}
           >
             Cancel
           </Button>
@@ -56,7 +75,8 @@ const SaveFlowModal = ({ isOpen, onClose, onSave }) => {
             variant="filled"
             color="blue"
             onClick={handleSave}
-            disabled={!name.trim()}
+            disabled={!name.trim() || saving}
+            loading={saving}
             startIcon={<Save className="w-4 h-4" />}
           >
             Save Flow

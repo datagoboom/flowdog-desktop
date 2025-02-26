@@ -21,10 +21,6 @@ const PERSISTED_STATE_KEYS = [
   'nodeSequence',
 ];
 
-const DB_NAME = 'workflow_db';
-const STORE_NAME = 'workflow_store';
-const DB_VERSION = 1;
-
 const LOCAL_STORAGE_KEYS = {
   NODES: 'flowNodes',
   EDGES: 'flowEdges',
@@ -41,9 +37,12 @@ export const useFlow = () => {
   return context;
 };
 
+
 export const FlowProvider = ({ children }) => {
   const api = useApi();
-  const httpRequest = api.nodes.http.request;  // Update this path based on your API structure
+  const httpRequest = api.http.request;
+  const commandExecute = api.nodes.command.execute;
+  const databaseQuery = api.database.query;
   const { decrypt } = useAuth();
 
   const [nodes, setNodes] = useState([]);
@@ -95,16 +94,32 @@ export const FlowProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await api.env.list();
+      
       if (response.success) {
-        setEnvironments(response.data);
-        // If we have environments but none selected, select the first one
-        if (response.data.length > 0 && !environment) {
-          const firstEnv = response.data[0];
-          setEnvironment(firstEnv);
+        // If no environments exist, create a default one
+        if (response.response.length === 0) {
+          const defaultEnv = {
+            id: uuidv4(),
+            name: 'Default Environment',
+            variables: {}
+          };
+          
+          const createResponse = await api.env.save(defaultEnv);
+          if (createResponse.success) {
+            setEnvironments([createResponse.response]);
+            setEnvironment(createResponse.response);
+          }
+        } else {
+          setEnvironments(response.response);
+          // If we have environments but none selected, select the first one
+          if (!environment) {
+            setEnvironment(response.response[0]);
+          }
         }
       }
     } catch (error) {
       console.error('Failed to load environments:', error);
+      setEnvironments([]); // Ensure environments is always an array even on error
     } finally {
       setLoading(false);
     }
@@ -120,8 +135,8 @@ export const FlowProvider = ({ children }) => {
 
       const response = await api.env.save(newEnv);
       if (response.success) {
-        setEnvironments(prev => [...prev, response.data]);
-        setEnvironment(response.data);
+        setEnvironments(prev => [...prev, response.response]);
+        setEnvironment(response.response);
       }
     } catch (error) {
       console.error('Failed to create environment:', error);
@@ -132,7 +147,7 @@ export const FlowProvider = ({ children }) => {
     try {
       const response = await api.env.get(envId);
       if (response.success) {
-        setEnvironment(response.data);
+        setEnvironment(response.response);
       }
     } catch (error) {
       console.error('Failed to switch environment:', error);
@@ -148,7 +163,7 @@ export const FlowProvider = ({ children }) => {
         // Update environments list with the updated environment
         setEnvironments(prev => 
           prev.map(env => 
-            env.id === environment.id ? response.data : env
+            env.id === environment.id ? response.response : env
           )
         );
       }
@@ -494,6 +509,8 @@ export const FlowProvider = ({ children }) => {
         setEnvironmentVariable,
         environment,
         httpRequest,
+        databaseQuery,
+        commandExecute,
         decrypt
       );
       
@@ -520,6 +537,8 @@ export const FlowProvider = ({ children }) => {
     setEnvironmentVariable,
     environment,
     httpRequest,
+    databaseQuery,
+    commandExecute,
     decrypt
   ]);
 
@@ -699,7 +718,6 @@ export const FlowProvider = ({ children }) => {
     );
     setExecutor(executor);
   }, [nodes, edges, environment, httpRequest, decrypt, addToHistory, addLog, setExecutingNodeIds, updateNodeData, setLastOutput, setLastInput, setEnvironmentVariable]);
-
 
   const value = useMemo(() => ({
     nodes,

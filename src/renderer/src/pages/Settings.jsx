@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, CreditCard, Database, Plug, ChevronRight, Bell, Moon, Sun, Globe, CheckCircle } from 'lucide-react';
+import { Database,  Moon, Sun, Upload, SettingsIcon, CreditCard, Bell, Globe, Plug, User} from 'lucide-react';
 import { Body1, Body2, Caption } from '../components/common/Typography';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
@@ -11,12 +11,14 @@ import Card from '../components/common/Card';
 import Modal from '../components/common/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import IntegrationsSection from '../components/settings/IntegrationsSection';
+import FlowImport from '../components/settings/FlowImport';
 
 const SECTIONS = {
   USER: 'user',
   INTEGRATIONS: 'integrations',
   DATA_SOURCES: 'data-sources',
-  BILLING: 'billing'
+  BILLING: 'billing',
+  IMPORT: 'import',
 };
 
 const Settings = () => {
@@ -52,20 +54,6 @@ const Settings = () => {
 
     loadIntegrations();
   }, [api]);
-
-  const handleSaveConfig = async (integrationId, config) => {
-    try {
-      const result = await api.integration.save({ id: integrationId, config });
-      if (result.success) {
-        setConfiguredIntegrations(prev => ({
-          ...prev,
-          [integrationId]: config
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to save integration:', error);
-    }
-  };
 
   // Load connections when component mounts
   useEffect(() => {
@@ -247,6 +235,9 @@ const Settings = () => {
             </div>
           </div>
         );
+
+      case SECTIONS.IMPORT:
+        return <FlowImport />;
     }
   };
 
@@ -259,7 +250,8 @@ const Settings = () => {
             { id: SECTIONS.USER, icon: User, label: 'User' },
             { id: SECTIONS.INTEGRATIONS, icon: Plug, label: 'Integrations' },
             { id: SECTIONS.DATA_SOURCES, icon: Database, label: 'Data Sources' },
-            { id: SECTIONS.BILLING, icon: CreditCard, label: 'Billing' }
+            { id: SECTIONS.BILLING, icon: CreditCard, label: 'Billing' },
+            { id: SECTIONS.IMPORT, icon: Upload, label: 'Import' }
           ].map(({ id, icon: Icon, label }) => (
             <button
               key={id}

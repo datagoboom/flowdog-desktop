@@ -1,5 +1,6 @@
 import database from '../services/databaseService'
 import { Sequelize, QueryTypes } from 'sequelize'
+import { responder } from '../utils/helpers'
 
 // Helper to safely escape values based on their type
 function escapeValue(value) {
@@ -119,27 +120,7 @@ export const databaseHandlers = {
     }
   },
 
-  'dialog.open-file': async (options) => {
-    const { dialog } = require('electron')
-    try {
-      const result = await dialog.showOpenDialog({
-        properties: ['openFile'],
-        ...options
-      })
-      
-      return { 
-        success: !result.canceled, 
-        filePath: result.filePaths[0] 
-      }
-    } catch (error) {
-      return { 
-        success: false, 
-        error: error.message 
-      }
-    }
-  },
-
-  'nodes.database.query': async (params) => {
+  'database:query': async (params) => {
     try {
       const { connectionId, query, input = {} } = params;
 
@@ -266,6 +247,63 @@ export const databaseHandlers = {
         success: false,
         error: error.message
       };
+    }
+  },
+
+  'database:validate': async (event, { connectionId, query }) => {
+    try {
+      if (!connectionId || !query) {
+        throw new Error('Connection ID and query are required');
+      }
+
+      // Validate query without executing
+      const isValid = await database.validateQuery(connectionId, query);
+      return responder(true, { isValid });
+    } catch (error) {
+      console.error('Query validation failed:', error);
+      return responder(false, null, error.message);
+    }
+  },
+
+  'database:tables': async (event, connectionId) => {
+    try {
+      if (!connectionId) {
+        throw new Error('Connection ID is required');
+      }
+
+      const tables = await database.listTables(connectionId);
+      return responder(true, tables);
+    } catch (error) {
+      console.error('Failed to list tables:', error);
+      return responder(false, null, error.message);
+    }
+  },
+
+  'database:columns': async (event, { connectionId, table }) => {
+    try {
+      if (!connectionId || !table) {
+        throw new Error('Connection ID and table name are required');
+      }
+
+      const columns = await database.listColumns(connectionId, table);
+      return responder(true, columns);
+    } catch (error) {
+      console.error('Failed to list columns:', error);
+      return responder(false, null, error.message);
+    }
+  },
+
+  'database:schema': async (event, connectionId) => {
+    try {
+      if (!connectionId) {
+        throw new Error('Connection ID is required');
+      }
+
+      const schema = await database.getSchema(connectionId);
+      return responder(true, schema);
+    } catch (error) {
+      console.error('Failed to get schema:', error);
+      return responder(false, null, error.message);
     }
   }
 }

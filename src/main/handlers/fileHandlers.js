@@ -4,15 +4,17 @@ import path from 'path';
 import { responder } from '../utils/helpers';
 
 export const fileHandlers = {
-  'file:save': async (_, { filePath, data, options = {} }) => {
+  'file:save': async (event, { filePath, data, options = {} }) => {
     try {
       // If no filePath provided, open save dialog
       if (!filePath) {
         const { canceled, filePath: selectedPath } = await dialog.showSaveDialog({
+          title: options.title || 'Save File',
           defaultPath: options.defaultPath,
           filters: options.filters || [
             { name: 'All Files', extensions: ['*'] }
-          ]
+          ],
+          properties: options.properties || []
         });
 
         if (canceled || !selectedPath) {
@@ -34,13 +36,37 @@ export const fileHandlers = {
     }
   },
 
-  'file:open': async (_, options = {}) => {
+  'file:append': async (event, { filePath, data, options = {} }) => {
+    try {
+      if (!filePath) {
+        return responder(false, null, 'No file path provided');
+      }
+
+      // Convert data to string if it's an object
+      const content = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+      
+      // Add newline if requested
+      const finalContent = options.addNewline ? content + '\n' : content;
+      
+      // Create file if it doesn't exist
+      await fs.appendFile(filePath, finalContent, 'utf8');
+      
+      return responder(true, { filePath });
+    } catch (error) {
+      console.error('Failed to append to file:', error);
+      return responder(false, null, error.message);
+    }
+  },
+
+  'file:open': async (event, options = {}) => {
     try {
       const { canceled, filePaths } = await dialog.showOpenDialog({
-        properties: ['openFile'],
+        title: options.title || 'Open File',
+        defaultPath: options.defaultPath,
         filters: options.filters || [
           { name: 'All Files', extensions: ['*'] }
-        ]
+        ],
+        properties: ['openFile', ...(options.properties || [])]
       });
 
       if (canceled || filePaths.length === 0) {
@@ -67,42 +93,13 @@ export const fileHandlers = {
     }
   },
 
-  'file:append': async (_, { filePath, data }) => {
-    try {
-      if (!filePath) {
-        return responder(false, null, 'No file path provided');
-      }
-
-      const content = typeof data === 'object' ? JSON.stringify(data) : data;
-      await fs.appendFile(filePath, content + '\n', 'utf8');
-      
-      return responder(true, { filePath });
-    } catch (error) {
-      console.error('Failed to append to file:', error);
-      return responder(false, null, error.message);
-    }
-  },
-
-  'file:delete': async (_, filePath) => {
-    try {
-      if (!filePath) {
-        return responder(false, null, 'No file path provided');
-      }
-
-      await fs.unlink(filePath);
-      
-      return responder(true, { filePath });
-    } catch (error) {
-      console.error('Failed to delete file:', error);
-      return responder(false, null, error.message);
-    }
-  },
-
-  'file:select-directory': async (_, options = {}) => {
+  'file:select-directory': async (event, options = {}) => {
     try {
       const { canceled, filePaths } = await dialog.showOpenDialog({
-        properties: ['openDirectory'],
-        defaultPath: options.defaultPath
+        title: options.title || 'Select Directory',
+        defaultPath: options.defaultPath,
+        properties: ['openDirectory', 'createDirectory'],
+        ...options
       });
 
       if (canceled || filePaths.length === 0) {
@@ -112,6 +109,29 @@ export const fileHandlers = {
       return responder(true, { directoryPath: filePaths[0] });
     } catch (error) {
       console.error('Failed to select directory:', error);
+      return responder(false, null, error.message);
+    }
+  },
+
+  'file:exists': async (event, filePath) => {
+    try {
+      await fs.access(filePath);
+      return responder(true, true);
+    } catch {
+      return responder(true, false);
+    }
+  },
+
+  'file:delete': async (event, filePath) => {
+    try {
+      if (!filePath) {
+        return responder(false, null, 'No file path provided');
+      }
+
+      await fs.unlink(filePath);
+      return responder(true, { filePath });
+    } catch (error) {
+      console.error('Failed to delete file:', error);
       return responder(false, null, error.message);
     }
   }

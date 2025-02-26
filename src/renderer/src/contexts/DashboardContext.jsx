@@ -37,7 +37,7 @@ export const DashboardProvider = ({ children }) => {
       description,
       panels: [],
       created_at: Date.now(),
-      updated_at: Date.now()
+      updatedAt: Date.now()
     };
 
     try {
@@ -56,7 +56,7 @@ export const DashboardProvider = ({ children }) => {
       const updatedDashboard = {
         ...dashboards.find(d => d.id === dashboardId),
         ...updates,
-        updated_at: Date.now()
+        updatedAt: Date.now()
       };
       
       await window.api.dashboard.save(updatedDashboard);

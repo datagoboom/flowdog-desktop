@@ -22,8 +22,9 @@ const OpenFlowModal = ({ isOpen, onClose, onOpen }) => {
     try {
       setLoading(true);
       const result = await api.flow.list();
+      console.log("Open Flow Modal, result", result)
       if (result.success) {
-        setFlows(result.data || []);
+        setFlows(result.response || []);
       } else {
         console.error('Failed to load flows:', result.error);
         setFlows([]);
@@ -52,8 +53,8 @@ const OpenFlowModal = ({ isOpen, onClose, onOpen }) => {
   };
 
   const filteredFlows = flows.filter(flow => 
-    flow.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (flow.description && flow.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    flow.dataValues.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (flow.dataValues.description && flow.dataValues.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -89,7 +90,7 @@ const OpenFlowModal = ({ isOpen, onClose, onOpen }) => {
             <div className="grid gap-2 overflow-y-auto h-[50vh] border-t border-b border-slate-400 dark:border-slate-400 px-4">
               {filteredFlows.map((flow) => (
                 <div
-                  key={flow.id}
+                  key={flow.dataValues.id}
                   className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   <div 
@@ -98,15 +99,15 @@ const OpenFlowModal = ({ isOpen, onClose, onOpen }) => {
                   >
                     <FileJson className="w-5 h-5 text-blue-500" />
                     <div>
-                      <div className="font-medium">{flow.name}</div>
-                      {flow.description && (
+                      <div className="font-medium">{flow.dataValues.name}</div>
+                      {flow.dataValues.description && (
                         <div className="text-sm text-slate-500 dark:text-slate-400">
-                          {flow.description}
+                          {flow.dataValues.description}
                         </div>
                       )}
                       <div className="flex items-center gap-1 text-xs text-slate-400">
                         <Clock className="w-3 h-3" />
-                        {formatDistanceToNow(new Date(flow.timestamp), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(flow.dataValues.updatedAt), { addSuffix: true })}
                       </div>
                     </div>
                   </div>
@@ -117,7 +118,7 @@ const OpenFlowModal = ({ isOpen, onClose, onOpen }) => {
                     color="red"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(flow.id);
+                      handleDelete(flow.dataValues.id);
                     }}
                   >
                     <Trash2 className="w-4 h-4" />

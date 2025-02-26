@@ -4,10 +4,8 @@ import JQParser from '../../utils/jq';
 const jq = new JQParser();
 
 export default class DatabaseQueryNode {
-  constructor(getEnvVar, setEnvironmentVariable, localEnvironment) {
-    this.getEnvVar = getEnvVar;
-    this.setEnvironmentVariable = setEnvironmentVariable;
-    this.localEnvironment = localEnvironment || { variables: {} };
+  constructor(databaseQuery) {
+    this.databaseQuery = databaseQuery;
   }
 
   async execute(data, inputData) {
@@ -28,50 +26,33 @@ export default class DatabaseQueryNode {
         return formatter.errorResponse('Query cannot be empty');
       }
 
-      // Process any template variables in the query
+      // Process template variables
       let processedQuery = query;
       let processedParams = [];
 
       try {
         // Replace {{variable}} templates in query
-        // Replace {{variable}} templates in query
         processedQuery = query.replace(/\{\{(.*?)\}\}/g, (match, path) => {
           try {
             const value = jq.evaluate(path.trim(), inputData);
-            // Handle different value types
-            if (value === null || value === undefined) {
-              return 'NULL';
-            }
-            if (typeof value === 'number') {
-              return value;
-            }
-            if (typeof value === 'boolean') {
-              return value ? 1 : 0;
-            }
+            if (value === null || value === undefined) return 'NULL';
+            if (typeof value === 'number') return value;
+            if (typeof value === 'boolean') return value ? 1 : 0;
             if (Array.isArray(value) || typeof value === 'object') {
-              return `'${JSON.stringify(value)}'`; // Single quotes for JSON
+              return `'${JSON.stringify(value)}'`;
             }
-            // Escape single quotes and wrap in single quotes
-            return `'${value.toString().replace(/'/g, "''")}'`; // Use single quotes, escape internal single quotes
+            return `'${value.toString().replace(/'/g, "''")}'`;
           } catch (error) {
             throw new Error(`Failed to process template ${match}: ${error.message}`);
           }
         });
 
-        // Process parameter values
-        parameters.forEach(param => {
+        // Process parameters
+        processedParams = parameters.map(param => {
           if (!param.value) {
             throw new Error(`Parameter "${param.name}" has no value`);
           }
-          const value = jq.evaluate(param.value, inputData);
-          processedParams.push(value);
-        });
-
-        console.log('Executing query:', {
-          connectionId,
-          processedQuery,
-          processedParams,
-          originalQuery: query
+          return jq.evaluate(param.value, inputData);
         });
 
       } catch (error) {
@@ -79,8 +60,8 @@ export default class DatabaseQueryNode {
       }
 
       try {
-        // Execute query through IPC
-        const result = await window.api.invoke('nodes.database.query', {
+        // Use new standardized database:query handler
+        const result = await this.databaseQuery({
           connectionId,
           query: processedQuery,
           parameters: processedParams

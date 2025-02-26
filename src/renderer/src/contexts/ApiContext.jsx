@@ -10,10 +10,10 @@ export function ApiProvider({ children }) {
 
   // Add httpRequest function
   const httpRequest = useCallback(async (config) => {
-    return await window.api.invoke('nodes:http:request', config);
+    return await window.api.invoke('http:request', config);
   }, []);
 
-  // Storage API for flows
+  // Flow API
   const saveFlow = useCallback(async (flowData) => {
     console.log('ApiContext saveFlow called with:', flowData);
     return await window.api.invoke('flow:save', flowData);
@@ -162,23 +162,43 @@ export function ApiProvider({ children }) {
 
   // File API
   const saveFile = useCallback(async (path, content, options) => {
-    return await window.api.invoke('nodes:file:save', path, content, options);
+    return await window.api.invoke('file:save', path, content, options);
   }, []);
 
   const openFile = useCallback(async (path) => {
-    return await window.api.invoke('nodes:file:open', path);
+    return await window.api.invoke('file:open', path);
   }, []);
 
   const appendFile = useCallback(async (path, content, options) => {
-    return await window.api.invoke('nodes:file:append', path, content, options);
+    return await window.api.invoke('file:append', path, content, options);
   }, []);
 
   const deleteFile = useCallback(async (path) => {
-    return await window.api.invoke('nodes:file:delete', path);
+    return await window.api.invoke('file:delete', path);
   }, []);
 
   const selectDirectory = useCallback(async (options) => {
-    return await window.api.invoke('nodes:file:select-directory', options);
+    return await window.api.invoke('file:select-directory', options);
+  }, []);
+
+  // Execution API
+  const startExecution = useCallback(async (flowId, options) => {
+    return await window.api.invoke('execution:start', {
+      flowId,
+      ...options
+    });
+  }, []);
+
+  const cancelExecution = useCallback(async (executionId) => {
+    return await window.api.invoke('execution:cancel', executionId);
+  }, []);
+
+  const listExecutions = useCallback(async (filters) => {
+    return await window.api.invoke('execution:list', filters);
+  }, []);
+
+  const databaseQuery = useCallback(async (query) => {
+    return await window.api.invoke('database:query', query);
   }, []);
 
   const api = {
@@ -186,9 +206,9 @@ export function ApiProvider({ children }) {
       command: {
         execute: executeCommand
       },
-      http: {
-        request: httpRequest
-      }
+    },
+    http: {
+      request: httpRequest
     },
     flow: {
       save: saveFlow,
@@ -244,6 +264,14 @@ export function ApiProvider({ children }) {
       append: appendFile,
       delete: deleteFile,
       selectDirectory: selectDirectory
+    },
+    execution: {
+      start: startExecution,
+      cancel: cancelExecution,
+      list: listExecutions
+    },
+    database: {
+      query: databaseQuery
     }
   };
 
@@ -260,4 +288,6 @@ export function useApi() {
     throw new Error('useApi must be used within an ApiProvider');
   }
   return context;
-} 
+}
+
+export default ApiProvider; 

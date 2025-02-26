@@ -1,7 +1,8 @@
 import database from '../services/databaseService';
+import { responder } from '../utils/helpers';
 
 export const connectionHandlers = {
-  'connection:save': async (_, connectionData) => {
+  'connection:save': async (event, connectionData) => {
     try {
       console.log('Connection handler: saving connection:', {
         ...connectionData,
@@ -16,39 +17,38 @@ export const connectionHandlers = {
       }
 
       const result = await database.saveConnection(connectionData);
-      
       if (!result.success) {
         throw new Error(result.error || 'Failed to save connection');
       }
 
-      return { success: true, data: result.id };
+      return responder(true, result.id);
     } catch (error) {
       console.error('Failed to save connection:', error);
-      return { success: false, error: error.message };
+      return responder(false, null, error.message);
     }
   },
 
-  'connection:list': async () => {
+  'connection:list': async (event) => {
     try {
       const connections = await database.listConnections();
-      return { success: true, data: connections };
+      return responder(true, connections);
     } catch (error) {
       console.error('Failed to list connections:', error);
-      return { success: false, error: error.message };
+      return responder(false, null, error.message);
     }
   },
 
-  'connection:delete': async (_, id) => {
+  'connection:delete': async (event, id) => {
     try {
       await database.deleteConnection(id);
-      return { success: true };
+      return responder(true);
     } catch (error) {
       console.error('Failed to delete connection:', error);
-      return { success: false, error: error.message };
+      return responder(false, null, error.message);
     }
   },
 
-  'connection:test': async (_, config) => {
+  'connection:test': async (event, config) => {
     try {
       console.log('Testing connection:', {
         type: config?.type,
@@ -61,10 +61,10 @@ export const connectionHandlers = {
       }
 
       const result = await database.testConnection(config);
-      return result;
+      return responder(result.success, result.data, result.error);
     } catch (error) {
       console.error('Connection test failed:', error);
-      return { success: false, error: error.message };
+      return responder(false, null, error.message);
     }
   }
 }; 

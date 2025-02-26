@@ -13,7 +13,8 @@ const validChannels = [
   'flow:get',
   'flow:list',
   'flow:delete',
-
+  'flow:load',
+  'flow:import',
   // Connection endpoints
   'connection:test',
   'connection:save',
@@ -36,12 +37,16 @@ const validChannels = [
   'node-template:list',
   'node-template:delete',
 
-  // Dialog endpoints
-  'dialog:open',
-  'dialog:save',
+  // File endpoints
+  'file:open',
+  'file:save',
+  'file:append',
+  'file:delete',
+  'file:select-directory',
 
   // Database endpoints
   'database:execute',
+  'database:query',
 
   // Dashboard endpoints
   'dashboard:save',
@@ -50,8 +55,13 @@ const validChannels = [
   'dashboard:get',
 
   // Node operation endpoints
-  'nodes:database:query',
-  'nodes:http:request'
+  'http:request',
+  'http:validate',
+  'execution:start',
+  'execution:stop',
+  'execution:status',
+  'execution:list',
+  'execution:history'
 ];
 
 // Validation utilities
