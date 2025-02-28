@@ -87,11 +87,6 @@ const ExecutionTable = ({ executions = [], flows = [], loading = false, onRefres
     }
   };
 
-  console.log('ExecutionTable data:', { 
-    executions: executions.slice(0, 2), 
-    flows: flows.slice(0, 2) 
-  });
-
   return (
     <Table
       data={executions}

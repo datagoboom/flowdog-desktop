@@ -22,7 +22,6 @@ const Dashboard = () => {
   }, []);
 
   const loadData = async () => {
-    console.log("Loading data");
     try {
       setLoading(true);
       

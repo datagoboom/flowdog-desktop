@@ -6,9 +6,10 @@ import { Body1, Body2 } from '../../common/Typography';
 import NodeInfo from './panels/NodeInfo';
 import DebugPanel from './panels/DebugPanel';
 import LogsPanel from './panels/LogsPanel';
+import EnvironmentManager from './panels/EnvironmentManager';
 import UtilitySidebar from './UtilitySidebar';
 import SidebarItem from '../../common/SidebarItem';
-import { Info, FileText, Bug } from 'lucide-react';
+import { Info, FileText, Bug, Settings } from 'lucide-react';
 
 const UtilityDrawer = memo(() => {
   const [isOpen, setIsOpen] = useState(true);
@@ -88,6 +89,13 @@ const UtilityDrawer = memo(() => {
           active={activeTab === 'debug'}
           onClick={() => handleTabClick('debug')}
         />
+        <SidebarItem
+          utility={true}
+          icon={<Settings size={20} />}
+          text="Environment"
+          active={activeTab === 'environment'}
+          onClick={() => handleTabClick('environment')}
+        />
       </UtilitySidebar>
       
       {isOpen && (
@@ -97,6 +105,7 @@ const UtilityDrawer = memo(() => {
               {activeTab === 'info' && <NodeInfo node={selectedNode} />}
               {activeTab === 'logs' && <LogsPanel />}
               {activeTab === 'debug' && <DebugPanel />}
+              {activeTab === 'environment' && <EnvironmentManager />}
             </div>
           </div>
         </div>

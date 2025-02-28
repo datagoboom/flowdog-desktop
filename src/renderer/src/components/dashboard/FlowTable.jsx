@@ -5,8 +5,6 @@ import Button from '../common/Button';
 import { cn } from '../../utils';
 
 const FlowTable = ({ flows = [], loading = false, onRefresh, onExecuteFlow }) => {
-  // Debug logging
-  console.log('FlowTable data:', flows.slice(0, 2));
 
   const columns = [
     {
@@ -75,7 +73,6 @@ const FlowTable = ({ flows = [], loading = false, onRefresh, onExecuteFlow }) =>
       render: (_, flow) => {
         // Get the correct flow ID
         const flowId = flow.id || (flow.dataValues && flow.dataValues.id);
-        console.log('Execute flow button:', { flowId, flow }); // Debug log
 
         return (
           <div className="flex items-center gap-2">

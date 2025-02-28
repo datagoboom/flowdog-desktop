@@ -74,10 +74,7 @@ export const FlowProvider = ({ children }) => {
   const [lastOutput, setLastOutput] = useState(null);
 
   // Initialize environment from localStorage
-  const [environment, setEnvironment] = useState(() => {
-    const savedEnv = localStorage.getItem(LOCAL_STORAGE_KEYS.ENVIRONMENT);
-    return savedEnv ? JSON.parse(savedEnv) : { variables: {} };
-  });
+  const [environment, setEnvironment] = useState({});
 
   // Add redo stack
   const [redoStack, setRedoStack] = useState([]);
@@ -94,78 +91,151 @@ export const FlowProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await api.env.list();
+      console.log('Raw API response from env:list:', response);
       
       if (response.success) {
-        // If no environments exist, create a default one
-        if (response.response.length === 0) {
+        // Transform the environments to clean up the data
+        const cleanedEnvironments = response.response.map(env => {
+          console.log('Processing environment:', env);
+          const data = env.dataValues || env; // Handle both raw and dataValues format
+          
+          return {
+            id: data.id,
+            name: data.name || 'Unnamed Environment',
+            description: data.description || '',
+            variables: data.variables,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt
+          };
+        });
+
+        console.log('Cleaned environments:', cleanedEnvironments);
+
+        // Only create default if we truly have no environments
+        // use await to delay the creation of the default environment
+        
+        if (cleanedEnvironments.length === 0) {
           const defaultEnv = {
             id: uuidv4(),
             name: 'Default Environment',
+            description: 'Default environment created automatically',
             variables: {}
           };
           
-          const createResponse = await api.env.save(defaultEnv);
+          console.log('Creating default environment:', defaultEnv);
+          const createResponse = await api.env.save({
+            ...defaultEnv,
+            variables: JSON.stringify(defaultEnv.variables) // Ensure variables is stringified
+          });
+          
+          console.log('Create default environment response:', createResponse);
+          
           if (createResponse.success) {
-            setEnvironments([createResponse.response]);
-            setEnvironment(createResponse.response);
+            // Create a properly formatted default environment with the response data
+            const newDefaultEnv = {
+              ...defaultEnv,
+              createdAt: createResponse.response.createdAt,
+              updatedAt: createResponse.response.updatedAt
+            };
+            
+            setEnvironments([newDefaultEnv]);
+            setEnvironment(newDefaultEnv);
           }
         } else {
-          setEnvironments(response.response);
+          console.log('Setting environments to:', cleanedEnvironments);
+          setEnvironments(cleanedEnvironments);
+          
           // If we have environments but none selected, select the first one
-          if (!environment) {
-            setEnvironment(response.response[0]);
+          if (!environment?.id) {
+            console.log('Setting initial environment to:', cleanedEnvironments[0]);
+            setEnvironment(cleanedEnvironments[0]);
+          } else {
+            // If we have a selected environment, make sure it has properly parsed variables
+            const currentEnv = cleanedEnvironments.find(env => env.id === environment.id);
+            if (currentEnv) {
+              setEnvironment(currentEnv);
+            }
           }
         }
       }
     } catch (error) {
       console.error('Failed to load environments:', error);
-      setEnvironments([]); // Ensure environments is always an array even on error
+      setEnvironments([]); 
     } finally {
       setLoading(false);
     }
   };
 
-  const createEnvironment = useCallback(async (name) => {
-    try {
-      const newEnv = {
-        id: uuidv4(),
-        name,
-        variables: {}
-      };
-
-      const response = await api.env.save(newEnv);
-      if (response.success) {
-        setEnvironments(prev => [...prev, response.response]);
-        setEnvironment(response.response);
-      }
-    } catch (error) {
-      console.error('Failed to create environment:', error);
-    }
-  }, [api.env]);
-
   const switchEnvironment = useCallback(async (envId) => {
+    console.log('Switching to environment ID:', envId);
+    
+    if (!envId) {
+      setEnvironment(null);
+      return;
+    }
+  
     try {
       const response = await api.env.get(envId);
-      if (response.success) {
-        setEnvironment(response.response);
+      console.log('Environment response:', response);
+      
+      if (response.success && response.response) {
+        const envData = response.response.dataValues || response.response;
+        
+        const newEnv = {
+          id: envData.id,
+          name: envData.name || 'Unnamed Environment',
+          description: envData.description || '',
+          variables: envData.variables,
+          createdAt: envData.createdAt,
+          updatedAt: envData.updatedAt
+        };
+        
+        console.log('Setting environment to:', newEnv);
+        setEnvironment(newEnv);
+        
+        // Save to localStorage for persistence
+        localStorage.setItem(LOCAL_STORAGE_KEYS.ENVIRONMENT, JSON.stringify(newEnv));
+      } else {
+        console.warn(`Environment with ID ${envId} not found`);
+        setEnvironment(null);
       }
     } catch (error) {
       console.error('Failed to switch environment:', error);
+      setEnvironment(null);
     }
   }, [api.env]);
 
-  const saveEnvironment = useCallback(async () => {
-    if (!environment) return;
+  const saveEnvironment = useCallback(async (updatedEnv) => {
+    const envToSave = updatedEnv || environment;
+    
+    if (!envToSave) return;
 
     try {
-      const response = await api.env.save(environment);
+      console.log('Saving environment:', envToSave);
+      
+      const saveData = { ...envToSave };
+            
+      const response = await api.env.save(saveData);
       if (response.success) {
-        // Update environments list with the updated environment
+        console.log('Environment saved successfully:', response.response);
+        
+        // Update the environments list
         setEnvironments(prev => 
           prev.map(env => 
-            env.id === environment.id ? response.response : env
+            env.id === envToSave.id ? {
+              ...envToSave,
+              updatedAt: response.response.updatedAt
+            } : env
           )
         );
+        
+        // Update current environment if it's the one we just saved
+        if (environment?.id === envToSave.id) {
+          setEnvironment({
+            ...envToSave,
+            updatedAt: response.response.updatedAt
+          });
+        }
       }
     } catch (error) {
       console.error('Failed to save environment:', error);
@@ -187,6 +257,7 @@ export const FlowProvider = ({ children }) => {
     }
   }, [environment, environments, api.env]);
 
+  // convenience function to set environment variables inside executors
   const setEnvironmentVariable = useCallback((name, value) => {
     if (!environment) return;
 
@@ -197,7 +268,6 @@ export const FlowProvider = ({ children }) => {
       } else {
         newVariables[name] = value;
       }
-
       return {
         ...prev,
         variables: newVariables
@@ -762,9 +832,6 @@ export const FlowProvider = ({ children }) => {
     setShowMinimap,
     environment,
     setEnvironmentVariable,
-    removeEnvironmentVariable: deleteEnvironment,
-    clearEnvironment: deleteEnvironment,
-    setEnvironmentDescription: createEnvironment,
     lastInput,
     lastOutput,
     setLastOutput,
@@ -781,7 +848,6 @@ export const FlowProvider = ({ children }) => {
     redoHistory,
     environments,
     loading,
-    createEnvironment,
     switchEnvironment,
     saveEnvironment,
     deleteEnvironment,
@@ -824,7 +890,6 @@ export const FlowProvider = ({ children }) => {
     background,
     showMinimap,
     environment,
-    setEnvironmentVariable,
     deleteEnvironment,
     lastInput,
     lastOutput,
@@ -842,7 +907,6 @@ export const FlowProvider = ({ children }) => {
     redoHistory,
     environments,
     loading,
-    createEnvironment,
     switchEnvironment,
     saveEnvironment,
   ]);
